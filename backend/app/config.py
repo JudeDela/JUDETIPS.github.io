@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     # Provider 2: Sportmonks v3
     sportmonks_api_token: str = "ahErAJVsYUkqeKctYZfTBYr6jW5L8eNSn2zUyEr9wOfpdywIk9KBunCPLyLY"
     sportmonks_base_url: str = "https://api.sportmonks.com/v3"
+
+    # Provider 3: API-Sports (API-Football v3)
+    api_sports_key: str = "47fd01cf9e9a3c9f29af43d40ac02e34"
+    api_sports_base_url: str = "https://v3.football.api-sports.io"
     
     fixture_horizon_days: int = 7
     cache_ttl_seconds: int = 600

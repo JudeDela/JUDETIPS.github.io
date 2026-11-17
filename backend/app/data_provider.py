@@ -345,30 +345,133 @@ async def fetch_sportmonks_fixtures(horizon_days: int = 10) -> List[Dict[str, An
     return fixtures
 
 
+async def fetch_apisports_fixtures(days_ahead: int = 2) -> List[Dict[str, Any]]:
+    """
+    Fetches real-time fixtures from API-Sports (api-sports.io / API-Football v3).
+    Respects rate limits by querying targeted dates with persistent caching.
+    """
+    if not settings.api_sports_key:
+        return []
+
+    fixtures = []
+    headers = {"x-apisports-key": settings.api_sports_key}
+    today = datetime.now(timezone.utc).date()
+
+    PRIORITY_LEAGUE_KEYWORDS = [
+        "Premier League", "La Liga", "Serie A", "Bundesliga", "Ligue 1",
+        "Champions League", "Europa League", "Brasileiro", "Eredivisie",
+        "Primeira Liga", "Championship", "Superliga", "Premiership", "FA Cup", "Copa"
+    ]
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            for day_offset in range(min(days_ahead, 2)):
+                target_date = (today + timedelta(days=day_offset)).strftime("%Y-%m-%d")
+                cache_key = f"apisports_fixtures_{target_date}"
+                cached = get_cached(cache_key)
+                if cached:
+                    fixtures.extend(cached)
+                    continue
+
+                url = f"{settings.api_sports_base_url}/fixtures?date={target_date}"
+                resp = await client.get(url, headers=headers)
+                if resp.status_code == 200:
+                    payload = resp.json()
+                    day_fixtures = []
+                    for item in payload.get("response", []):
+                        league_info = item.get("league") or {}
+                        league_name = league_info.get("name", "Unknown League")
+                        country = league_info.get("country", "")
+
+                        is_priority = any(k.lower() in league_name.lower() for k in PRIORITY_LEAGUE_KEYWORDS) or country in [
+                            "England", "Spain", "Italy", "Germany", "France", "Brazil", "Netherlands", "Portugal", "World", "Europe"
+                        ]
+
+                        if not is_priority and len(day_fixtures) > 30:
+                            continue
+
+                        teams = item.get("teams") or {}
+                        home = teams.get("home") or {}
+                        away = teams.get("away") or {}
+                        home_name = home.get("name", "Home Team")
+                        away_name = away.get("name", "Away Team")
+                        home_xg, away_xg = estimate_expected_goals(home_name, away_name)
+
+                        fix_info = item.get("fixture") or {}
+                        goals = item.get("goals") or {}
+
+                        day_fixtures.append({
+                            "id": f"api-{fix_info.get('id')}",
+                            "league": league_name,
+                            "competition_code": (country[:3] if country else "INT").upper(),
+                            "country": country,
+                            "emblem": league_info.get("logo", ""),
+                            "home_team": home_name,
+                            "home_short": home_name,
+                            "home_crest": home.get("logo", ""),
+                            "away_team": away_name,
+                            "away_short": away_name,
+                            "away_crest": away.get("logo", ""),
+                            "kickoff": fix_info.get("date"),
+                            "status": fix_info.get("status", {}).get("short", "TIMED"),
+                            "home_xg": home_xg,
+                            "away_xg": away_xg,
+                            "home_score": goals.get("home"),
+                            "away_score": goals.get("away"),
+                            "provider": "api-sports.io"
+                        })
+
+                    set_cached(cache_key, day_fixtures, ttl_seconds=1800)
+                    fixtures.extend(day_fixtures)
+    except Exception as e:
+        logger.error(f"Error fetching API-Sports matches: {e}")
+
+    return fixtures
+
+
 async def fetch_fixtures(force_refresh: bool = False) -> Tuple[List[Dict[str, Any]], str]:
     """
-    Combines fixtures from both configured football intelligence providers:
-    1. football-data.org v4 (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Brasileirão)
-    2. Sportmonks v3 (Scottish Premiership, Danish Superliga, and advanced participant analytics)
+    Combines fixtures from configured football intelligence providers:
+    1. API-Sports (api-sports.io v3) - Live official feed
+    2. football-data.org v4 (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Brasileirão)
+    3. Sportmonks v3 (Scottish Premiership, Danish Superliga, and advanced participant analytics)
     """
-    cache_key = f"fixtures_dual_{settings.fixture_horizon_days}"
+    cache_key = f"fixtures_multi_{settings.fixture_horizon_days}"
     if not force_refresh:
         cached = get_cached(cache_key)
         if cached:
-            return cached, "football-data.org + Sportmonks (cached)"
+            return cached, "Multi-Feed (API-Sports + Football-Data + Sportmonks) [cached]"
 
-    # Fetch from both providers concurrently
+    # Fetch from providers concurrently
+    api_matches = await fetch_apisports_fixtures(2)
     fd_matches = await fetch_football_data_fixtures(settings.fixture_horizon_days)
     sm_matches = await fetch_sportmonks_fixtures(settings.fixture_horizon_days + 3)
 
-    combined = fd_matches + sm_matches
+    # Deduplicate matches by fixture pairs (lowercase home and away)
+    seen_pairs = set()
+    combined = []
+
+    for m in (api_matches + fd_matches + sm_matches):
+        h = (m.get("home_team") or "").lower().strip()
+        a = (m.get("away_team") or "").lower().strip()
+        k = (m.get("kickoff") or "")[:10]
+        pair_key = f"{h}_vs_{a}_{k}"
+        if pair_key not in seen_pairs and h and a:
+            seen_pairs.add(pair_key)
+            combined.append(m)
 
     # Sort combined matches chronologically
     combined.sort(key=lambda m: m.get("kickoff") or "")
 
-    source_label = "football-data.org + Sportmonks v3" if sm_matches and fd_matches else (
-        "football-data.org" if fd_matches else ("Sportmonks v3" if sm_matches else "demo")
-    )
+    sources = []
+    if api_matches:
+        sources.append("API-Sports v3")
+    if fd_matches:
+        sources.append("football-data.org v4")
+    if sm_matches:
+        sources.append("Sportmonks v3")
+
+    source_label = " + ".join(sources) if sources else "demo"
 
     if combined:
         set_cached(cache_key, combined, ttl_seconds=settings.cache_ttl_seconds)

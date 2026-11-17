@@ -38,6 +38,7 @@ jobs:
 
       - name: Refresh Live Fixtures & Recalculate 90%+ Bankers
         env:
+          API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY || '47fd01cf9e9a3c9f29af43d40ac02e34' }}
           FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN || 'b7e6bea2bbea49b59808336137209ef8' }}
           SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN || 'ahErAJVsYUkqeKctYZfTBYr6jW5L8eNSn2zUyEr9wOfpdywIk9KBunCPLyLY' }}
         run: |
@@ -55,12 +56,12 @@ jobs:
                       'daily_banker_slip': slip,
                       'source': preds.get('source', '')
                   }
-                  js_str = 'window.GOALINSIGHT_DATA = ' + json.dumps(data, ensure_ascii=False) + ';'
+                  js_str = 'window.JUDETIPS_DATA = ' + json.dumps(data, ensure_ascii=False) + '; window.GOALINSIGHT_DATA = window.JUDETIPS_DATA;'
                   with open('fixtures_data.js', 'w', encoding='utf-8') as f:
                       f.write(js_str)
                   with open('docs/fixtures_data.js', 'w', encoding='utf-8') as f:
                       f.write(js_str)
-                  print(f'Successfully updated {len(preds.get(\"predictions\", []))} fixtures with 90%+ bankers!')
+                  print(f'Successfully updated {len(preds.get(\"predictions\", []))} fixtures with 90%+ bankers for JUDETIPS!')
               except Exception as e:
                   print(f'Warning during live fetch, falling back to existing data: {e}')
 

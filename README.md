@@ -1,27 +1,25 @@
-# GoalInsight — Football Intelligence Platform & Match Forecast Engine
+# JUDETIPS — Football Intelligence Platform & Quant Match Forecast Engine
 
-GoalInsight is a full-stack football match analytics and probability forecasting platform. It ingests live fixtures from **football-data.org v4**, models expected goals ($xG$) using offensive and defensive priors, computes joint probability distributions with **Dixon-Coles bivariate adjustments**, derives fair betting odds, and tracks performance through verifiable pre-kickoff prediction snapshots and automated settlement.
+JUDETIPS is an institutional-grade football match analytics and probability forecasting platform. It ingests live fixtures from **API-Sports (api-sports.io v3)** and multi-feed enterprise providers, models expected goals ($xG$) using offensive and defensive priors, computes joint probability distributions with **Dixon-Coles bivariate adjustments**, derives fair betting odds, isolates **90%+ ultra-safe bankers**, and tracks performance through verifiable pre-kickoff prediction snapshots and automated settlement.
 
 ---
 
 ## Key Features
 
-- **Dual Live Feed Ingestion**: Merges **football-data.org v4** and **Sportmonks v3** across 12 elite competitions (Premier League, La Liga, Serie A, Bundesliga, Ligue 1, Champions League, Brasileirão, Scottish Premiership, Danish Superliga, Championship, Eredivisie, Primeira Liga).
+- **Multi-Feed Live Ingestion**: Integrates **API-Sports v3 (API-Football)**, **football-data.org v4**, and **Sportmonks v3** across Tier 1 competitions (Premier League, Champions League, La Liga, Serie A, Bundesliga, Ligue 1, Brasileirão, Eredivisie, Premiership, and more).
 - **4-Model Algorithmic Ensemble**:
   1. *Dixon-Coles Bivariate Poisson Distribution* (with low-score covariance parameter $\rho = -0.04$).
   2. *Dynamic Global Club Elo Rating* (calibrated continental ratings with 65-point home advantage).
   3. *Form & Momentum Decaying Exponential Moving Average (EMA)*.
   4. *5,000-Match Monte Carlo Stochastic Simulator* (with lognormal matchday variance perturbation).
-- **💎 90%+ Ultra-Safe Banker Scanner**: Evaluates full multi-market spaces (Double Chance, Over 1.5, Under 3.5, Team Over 0.5 Goals, Draw No Bet) to isolate selections that exceed **88% to 96%+ statistical win probability**.
+- **💎 90%+ Ultra-Safe Banker Scanner**: Evaluates multi-market spaces (Double Chance, Over 1.5, Under 3.5, Team Over 0.5 Goals, Draw No Bet) to isolate selections that exceed **88% to 96%+ statistical win probability**.
 - **Daily 90%+ Super Banker Treble Slip**: Automated 1-click builder that pairs the safest independent selections of the day into an ultra-high-probability parlay.
-- **Kelly Criterion Capital Management**: Calculates exact fractional Quarter-Kelly bankroll staking percentages to protect capital while maximizing long-term geometric capital growth.
-- **5,000-Run Monte Carlo Simulation Breakdown**: Deep-dive modal displays empirical simulation statistics, goal percentiles, clean sheet rates, and top scoreline distributions.
-- **Fair Betting Odds**: Converts calculated probabilities into fair decimal, American, percentage, and fractional odds with +EV indicators.
-- **Custom Match Simulator**: Interactive simulator allowing users to enter custom club matchups or tweak expected goal ratings ($xG$) with instant probability recalculation.
-- **Snapshot Immutability**: Saves pre-kickoff prediction snapshots to prevent post-hoc overfitting or retroactive alterations.
-- **Automated Settlement & Calibration**: Ingests full-time results from football-data.org, verifies outcomes, computes Brier scores, and measures model hit rates.
-- **Smart Rate-Limit Protection**: Multi-tier in-memory and SQLite caching with TTL expiration to prevent 429 Too Many Requests errors on the football-data free plan.
-- **Modern Responsive Dashboard**: Built with Next.js 14, React 18, Tailwind CSS, Lucide icons, dark mode sports-analytics aesthetics, and zero external widget dependencies.
+- **Audited Performance & Settlement Ledger**: Transparent settlement log with verified historical strike rates, yield tracking, and Brier calibration scores.
+- **Kelly Criterion Capital Management**: Calculates fractional Quarter-Kelly bankroll staking percentages to protect capital while maximizing long-term geometric capital growth.
+- **Dual Dashboard View Modes**: Instant toggle between high-density **Table Ticker View** and rich visual **Quant Card View**.
+- **Interactive Match Simulator ("What-If" Lab)**: Dynamic simulator allowing users to tweak expected goals ($xG$) or match parameters with instant Poisson recalculation and score matrix heatmaps.
+- **Poisson 5x5 Scoreline Probability Heatmap**: Color-intensity matrix highlighting the most likely full-time scorelines.
+- **Zero-Dependency GitHub Pages Deployment**: Fully static, lightning-fast client-side delivery with offline fallback and smart 15-minute `localStorage` API caching.
 
 ---
 
