@@ -1,0 +1,41 @@
+services:
+  # FastAPI Backend Service
+  - type: web
+    name: goalinsight-backend
+    env: python
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: FOOTBALL_DATA_TOKEN
+        value: b7e6bea2bbea49b59808336137209ef8
+      - key: FOOTBALL_DATA_BASE_URL
+        value: https://api.football-data.org/v4
+      - key: FIXTURE_HORIZON_DAYS
+        value: 7
+      - key: CACHE_TTL_SECONDS
+        value: 600
+      - key: CORS_ORIGINS
+        value: "*"
+
+  # Next.js Frontend Service
+  - type: web
+    name: goalinsight-frontend
+    env: node
+    region: oregon
+    plan: free
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: goalinsight-backend
+          property: host

@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: goalinsight-db
+    environment:
+      POSTGRES_DB: goalinsight
+      POSTGRES_USER: goaluser
+      POSTGRES_PASSWORD: goalsecurepassword123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: goalinsight-backend-prod
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=postgresql://goaluser:goalsecurepassword123@db:5432/goalinsight
+      - FOOTBALL_DATA_TOKEN=b7e6bea2bbea49b59808336137209ef8
+      - FOOTBALL_DATA_BASE_URL=https://api.football-data.org/v4
+      - FIXTURE_HORIZON_DAYS=7
+      - CACHE_TTL_SECONDS=600
+      - CORS_ORIGINS=*
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    restart: always
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: goalinsight-frontend-prod
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  pgdata:

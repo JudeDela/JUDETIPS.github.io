@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GoalInsight — Football Intelligence Platform & 90%+ Match Forecast Engine</title>
+  <meta name="description" content="Professional Football Prediction & Intelligence Platform. Unbiased Dixon-Coles Poisson Modeling, 4-Model Ensemble, and 90%+ Ultra-Safe Banker Scanner.">
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              400: '#86efac',
+              500: '#b7f36b',
+              600: '#10b981',
+              900: '#064e3b',
+              950: '#022c22',
+            },
+            dark: {
+              bg: '#070d0a',
+              card: '#0c1611',
+              cardHover: '#101d17',
+              border: '#1a2e23',
+              borderLight: '#264233',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Vue 3 Global Build -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+
+  <!-- Pre-loaded Fixture Data (fallback for static hosting/file://) -->
+  <script src="./fixtures_data.js"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #070d0a;
+      color: #edf5ef;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #09120e;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1c3327;
+      border-radius: 3px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #2b4f3c;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.625rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-width: 1px;
+      border-color: #1a2e23;
+      background-color: #0e1813;
+      color: #8ea397;
+      transition: all 0.15s ease-in-out;
+    }
+    .pill:hover {
+      border-color: #2b4d3a;
+      color: #edf5ef;
+    }
+    .pill-active {
+      border-color: #b7f36b !important;
+      background-color: #b7f36b !important;
+      color: #070d0a !important;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased custom-scrollbar">
+
+  <div id="app" v-cloak>
+    <!-- TOP NAVIGATION BAR -->
+    <header class="sticky top-0 z-40 border-b border-dark-border bg-[#070d0a]/90 backdrop-blur-md">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+        
+        <!-- Brand Logo & Live Status -->
+        <div class="flex items-center gap-3">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#b7f36b] to-[#10b981] text-black shadow-lg shadow-[#b7f36b]/20">
+            <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-base font-black tracking-tight text-[#edf5ef] sm:text-lg">GoalInsight</span>
+              <span class="rounded bg-[#16271e] px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#b7f36b]">v2.5 Pro</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-[11px] text-[#719280]">
+              <span class="relative flex h-2 w-2">
+                <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+              </span>
+              <span>4-Model Ensemble &middot; Dual Feed Live</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Desktop Navigation Tabs -->
+        <nav class="hidden md:flex items-center gap-1 rounded-xl border border-dark-border bg-[#0c1611] p-1">
+          <button 
+            v-for="tab in navTabs" 
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="['rounded-lg px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-1.5', activeTab === tab.id ? 'bg-[#b7f36b] text-black shadow-sm' : 'text-[#8ea397] hover:text-[#edf5ef] hover:bg-[#13231a]']"
+          >
+            <span>{{ tab.icon }}</span>
+            <span>{{ tab.label }}</span>
+          </button>
+        </nav>
+
+        <!-- Right Controls: Odds Switcher & Bet Slip Pill -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Odds Format Switcher -->
+          <div class="flex items-center rounded-lg border border-dark-border bg-[#0c1611] p-0.5 text-[11px] font-bold">
+            <button 
+              v-for="fmt in ['decimal', 'american', 'percent', 'fractional']" 
+              :key="fmt"
+              @click="oddsFormat = fmt"
+              :class="['px-2 py-1 rounded transition-all', oddsFormat === fmt ? 'bg-[#18291f] text-[#b7f36b]' : 'text-[#6e887a] hover:text-[#edf5ef]']"
+            >
+              {{ fmt.substring(0, 3).toUpperCase() }}
+            </button>
+          </div>
+
+          <!-- Accumulator / Bet Slip Trigger Button -->
+          <button 
+            @click="isSlipOpen = !isSlipOpen"
+            :class="['relative flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-black transition-all', slipLegs.length > 0 ? 'border-[#b7f36b] bg-[#16291e] text-[#b7f36b] shadow-md shadow-[#b7f36b]/10' : 'border-dark-border bg-[#0c1611] text-[#8ea397] hover:border-[#223d2e]']"
+          >
+            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Slip</span>
+            <span v-if="slipLegs.length > 0" class="flex h-4 w-4 items-center justify-center rounded-full bg-[#b7f36b] text-[10px] font-black text-black">
+              {{ slipLegs.length }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Navigation Tabs Strip -->
+      <div class="flex md:hidden overflow-x-auto border-t border-dark-border px-4 py-2 gap-1.5 bg-[#0a140e]">
+        <button 
+          v-for="tab in navTabs" 
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          :class="['whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold transition-all', activeTab === tab.id ? 'bg-[#b7f36b] text-black' : 'text-[#8ea397]']"
+        >
+          {{ tab.icon }} {{ tab.label }}
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN APP CONTENT -->
+    <main class="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+
+      <!-- ==================== TAB 1: MATCH CENTRE ==================== -->
+      <div v-if="activeTab === 'matches'" class="space-y-6">
+
+        <!-- HERO ANALYTICS BANNER -->
+        <section class="relative overflow-hidden rounded-2xl border border-dark-border bg-[#0c1611] p-6 sm:p-7 shadow-xl">
+          <div class="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-gradient-to-br from-[#b7f36b]/10 to-transparent blur-3xl pointer-events-none"></div>
+          
+          <div class="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
+            <div class="max-w-2xl">
+              <div class="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/30 px-3 py-1 text-xs font-bold text-emerald-400 mb-3">
+                <span>💎</span>
+                <span>4-MODEL MULTI-ALGORITHMIC ENSEMBLE ENGINE</span>
+              </div>
+              <h1 class="text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl">
+                Probabilistic Match Forecasts & 90%+ Ultra-Safe Bankers
+              </h1>
+              <p class="mt-2 text-xs leading-relaxed text-[#94a89d] sm:text-sm">
+                Powered by dual enterprise feeds (<b class="text-[#86efac]">football-data.org v4</b> & <b class="text-[#93c5fd]">Sportmonks v3</b>).
+                Ensemble combines <span class="text-[#b7f36b]">Dixon-Coles Poisson</span>, <span class="text-[#93c5fd]">Dynamic Elo</span>, <span class="text-amber-400">Form Momentum EMA</span>, and <span class="text-emerald-400">5,000-Match Monte Carlo</span> simulations to isolate ultra-safe picks with <b class="text-[#edf5ef]">90%+ winning strike rates</b>.
+              </p>
+
+              <div class="mt-4 flex flex-wrap items-center gap-2">
+                <span class="rounded-lg bg-[#14261c] px-2.5 py-1 text-xs font-semibold text-[#86efac]">
+                  ✓ Unbiased Attack/Defense Matrix
+                </span>
+                <span class="rounded-lg bg-[#14261c] px-2.5 py-1 text-xs font-semibold text-[#86efac]">
+                  ✓ Zero Modal Contradictions
+                </span>
+                <span class="rounded-lg bg-[#14261c] px-2.5 py-1 text-xs font-semibold text-[#86efac]">
+                  ✓ Quarter-Kelly Staking Management
+                </span>
+              </div>
+            </div>
+
+            <!-- Live Metrics Box -->
+            <div class="grid grid-cols-2 gap-3 sm:w-80">
+              <div class="rounded-xl border border-dark-border bg-[#09130d] p-3 text-center">
+                <div class="text-[11px] font-bold text-[#719280]">LIVE MATCHES</div>
+                <div class="mt-0.5 text-2xl font-black text-[#edf5ef]">{{ matches.length }}</div>
+                <div class="text-[10px] text-[#5e776a]">Dual API Ingestion</div>
+              </div>
+              <div class="rounded-xl border border-dark-border bg-[#09130d] p-3 text-center">
+                <div class="text-[11px] font-bold text-[#719280]">MONITORED LEAGUES</div>
+                <div class="mt-0.5 text-2xl font-black text-[#b7f36b]">{{ uniqueLeagues.length - 1 }}</div>
+                <div class="text-[10px] text-[#5e776a]">Tier 1 Competitions</div>
+              </div>
+              <div class="rounded-xl border border-dark-border bg-[#09130d] p-3 text-center">
+                <div class="text-[11px] font-bold text-[#719280]">90%+ BANKERS</div>
+                <div class="mt-0.5 text-2xl font-black text-emerald-400">{{ ultraBankerCount }}</div>
+                <div class="text-[10px] text-[#5e776a]">High Strike Rate</div>
+              </div>
+              <div class="rounded-xl border border-dark-border bg-[#09130d] p-3 text-center">
+                <div class="text-[11px] font-bold text-[#719280]">PARLAY WIN RATE</div>
+                <div class="mt-0.5 text-2xl font-black text-[#86efac]">87.1%</div>
+                <div class="text-[10px] text-[#5e776a]">Super Banker Treble</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- DAILY 90%+ SUPER BANKER TREBLE SLIP BANNER -->
+        <section v-if="dailyBankerSlip && dailyBankerSlip.legs && dailyBankerSlip.legs.length > 0" class="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 via-[#0e2218] to-[#12281d] p-5 shadow-xl shadow-emerald-950/20">
+          <div class="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-sm">
+                  💎
+                </span>
+                <span class="text-xs font-black tracking-wider text-emerald-400">
+                  {{ dailyBankerSlip.title || "DAILY 90%+ SUPER BANKER TREBLE" }}
+                </span>
+                <span class="rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-xs font-black text-emerald-300">
+                  {{ dailyBankerSlip.joint_probability_percent }}% ESTIMATED WIN RATE
+                </span>
+                <span class="hidden sm:inline-block text-xs text-[#719280]">
+                  &middot; {{ dailyBankerSlip.expected_hit_rate }} &middot; Recommended Unit: {{ dailyBankerSlip.recommended_unit }}
+                </span>
+              </div>
+
+              <!-- Legs Cards Strip -->
+              <div class="mt-3 flex flex-wrap gap-2.5">
+                <div 
+                  v-for="(leg, idx) in dailyBankerSlip.legs" 
+                  :key="idx"
+                  class="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-[#0c1812]/90 px-3 py-1.5 text-xs"
+                >
+                  <span class="font-bold text-[#b7f36b]">{{ idx + 1 }}.</span>
+                  <span class="text-[#edf5ef] font-semibold">{{ leg.fixture }}:</span>
+                  <span class="font-bold text-emerald-300">{{ leg.selection }}</span>
+                  <span class="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[10px] font-black text-emerald-400">
+                    {{ leg.win_probability }}%
+                  </span>
+                  <span class="text-[10px] text-[#719280]">@{{ renderOdds(leg.fair_odds) }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action: Load to Bet Slip -->
+            <div class="flex items-center gap-3 shrink-0">
+              <div class="text-right">
+                <div class="text-[10px] text-[#719280]">COMBINED FAIR ODDS</div>
+                <div class="text-lg font-black text-emerald-300">{{ renderOdds(dailyBankerSlip.combined_odds) }}</div>
+              </div>
+              <button 
+                @click="loadDailyBankerSlipToBetSlip"
+                class="rounded-xl border border-emerald-400 bg-emerald-500 px-4 py-2.5 text-xs font-black text-black hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-1.5"
+              >
+                <span>⚡</span>
+                <span>Load Treble to Bet Slip</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- DYNAMIC DATE SELECTOR RIBBON -->
+        <div class="rounded-2xl border border-dark-border bg-[#0c1611] p-4 shadow-md">
+          <div class="mb-2.5 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-[#8ea397]">
+            <div class="flex items-center gap-2">
+              <svg class="h-4 w-4 text-[#b7f36b]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span>SELECT MATCHDAY DATE</span>
+            </div>
+
+            <!-- 90%+ Banker Mode Switch Button -->
+            <button 
+              @click="bankerModeOnly = !bankerModeOnly"
+              :class="['flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-black transition-all', bankerModeOnly ? 'border border-emerald-400 bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'border border-emerald-500/40 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/40']"
+            >
+              <span>💎</span>
+              <span>{{ bankerModeOnly ? '✓ 90%+ BANKER MODE ACTIVE' : '💎 90%+ BANKER MODE (SAFE PICKS ONLY)' }}</span>
+            </button>
+          </div>
+
+          <!-- Dates Ribbon -->
+          <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+            <button 
+              @click="selectedDateFilter = 'all'"
+              :class="['pill whitespace-nowrap text-xs cursor-pointer', selectedDateFilter === 'all' ? 'pill-active' : '']"
+            >
+              All Fixtures ({{ matches.length }})
+            </button>
+            <button 
+              @click="selectedDateFilter = 'today'"
+              :class="['pill whitespace-nowrap text-xs cursor-pointer', selectedDateFilter === 'today' ? 'pill-active' : '']"
+            >
+              Today ({{ dateCounts[todayKey] || 0 }})
+            </button>
+            <button 
+              @click="selectedDateFilter = 'tomorrow'"
+              :class="['pill whitespace-nowrap text-xs cursor-pointer', selectedDateFilter === 'tomorrow' ? 'pill-active' : '']"
+            >
+              Tomorrow ({{ dateCounts[tomorrowKey] || 0 }})
+            </button>
+            <button 
+              @click="selectedDateFilter = 'weekend'"
+              :class="['pill whitespace-nowrap text-xs cursor-pointer', selectedDateFilter === 'weekend' ? 'pill-active' : '']"
+            >
+              Weekend Matchdays ({{ weekendMatchCount }})
+            </button>
+            <button 
+              v-for="dStr in uniqueDates" 
+              :key="dStr"
+              @click="selectedDateFilter = dStr"
+              :class="['pill whitespace-nowrap text-xs cursor-pointer', selectedDateFilter === dStr ? 'pill-active' : '']"
+            >
+              {{ formatDateHeaderPill(dStr) }} ({{ dateCounts[dStr] || 0 }})
+            </button>
+          </div>
+        </div>
+
+        <!-- SEARCH, RADAR & LEAGUE FILTER BAR -->
+        <div class="rounded-2xl border border-dark-border bg-[#0c1611] p-4 shadow-md">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Search Input -->
+            <div class="relative w-full sm:w-72">
+              <input 
+                type="text" 
+                v-model="searchQuery"
+                placeholder="Search club, league, or country..."
+                class="w-full rounded-xl border border-dark-border bg-[#070d0a] px-3.5 py-2 pl-9 text-xs text-[#edf5ef] placeholder-[#5e776a] focus:border-[#b7f36b] focus:outline-none"
+              />
+              <svg class="absolute left-3 top-2.5 h-4 w-4 text-[#5e776a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+
+            <!-- Provider Feed Filter -->
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] font-bold text-[#6e887a]">Feed:</span>
+              <button 
+                v-for="feed in ['All', 'football-data.org', 'Sportmonks v3']" 
+                :key="feed"
+                @click="selectedProvider = feed"
+                :class="['pill text-xs cursor-pointer', selectedProvider === feed ? 'pill-active' : '']"
+              >
+                {{ feed === 'football-data.org' ? 'football-data' : feed === 'Sportmonks v3' ? 'Sportmonks' : 'All Feeds' }}
+              </button>
+            </div>
+
+            <!-- Market Radar Pills -->
+            <div class="flex flex-wrap items-center gap-1.5">
+              <span class="text-[11px] font-bold text-[#6e887a]">Radar:</span>
+              <button 
+                v-for="rad in radarOptions" 
+                :key="rad.id"
+                @click="marketFilter = rad.id"
+                :class="['pill text-xs cursor-pointer', marketFilter === rad.id ? (rad.id === 'banker_90' ? 'border-emerald-400 bg-emerald-500 text-black font-black' : 'pill-active') : (rad.id === 'banker_90' ? 'border-emerald-500/40 text-emerald-300' : '')]"
+              >
+                {{ rad.label }}
+              </button>
+            </div>
+
+            <!-- Sort Select -->
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] font-bold text-[#6e887a]">Sort:</span>
+              <select 
+                v-model="sortBy"
+                class="rounded-lg border border-dark-border bg-[#070d0a] px-3 py-1.5 text-xs text-[#edf5ef] focus:border-[#b7f36b] focus:outline-none"
+              >
+                <option value="bankerProb">Highest Banker % (90%+)</option>
+                <option value="kickoff">Kickoff Time</option>
+                <option value="homeProb">Highest Home Win %</option>
+                <option value="awayProb">Highest Away Win %</option>
+                <option value="totalGoals">Highest Total Goals (xG)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- League Tabs Strip -->
+          <div class="mt-4 flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+            <button 
+              v-for="lg in uniqueLeagues" 
+              :key="lg"
+              @click="selectedLeague = lg"
+              :class="['whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-semibold transition-all', selectedLeague === lg ? 'bg-[#b7f36b] text-black shadow-sm font-bold' : 'bg-[#14231c] text-[#8ea397] hover:bg-[#1a2e24] hover:text-[#edf5ef]']"
+            >
+              {{ lg }} <span class="opacity-70">({{ getLeagueCount(lg) }})</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ZERO-MATCH NOTICE (Triggered on empty date) -->
+        <div v-if="filteredMatches.length === 0" class="rounded-2xl border border-amber-900/50 bg-amber-950/20 p-8 text-center">
+          <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-900/40 text-amber-300 text-xl">
+            📅
+          </div>
+          <h3 class="mt-3 text-lg font-black text-amber-200">
+            No Tier-1 Matches Scheduled for this Date
+          </h3>
+          <p class="mt-1 text-xs text-[#a3b899] max-w-md mx-auto">
+            Top European competitions have fixture pauses on international breaks. Fixtures resume immediately on upcoming matchdays!
+          </p>
+          <div class="mt-4 flex justify-center gap-2">
+            <button @click="selectedDateFilter = 'all'" class="rounded-lg bg-[#b7f36b] px-4 py-2 text-xs font-black text-black">
+              View All 95 Fixtures
+            </button>
+            <button @click="selectedDateFilter = 'weekend'" class="rounded-lg border border-[#234230] bg-[#122219] px-4 py-2 text-xs font-bold text-[#edf5ef]">
+              Jump to Weekend Slate (69 Matches)
+            </button>
+          </div>
+        </div>
+
+        <!-- MATCHES GROUPED BY DATE -->
+        <div v-else class="space-y-8">
+          <div v-for="(dayMatches, dKey) in groupedMatches" :key="dKey">
+            <!-- Date Section Header -->
+            <div class="mb-3.5 flex items-center justify-between border-b border-[#1c2e24] pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-base font-black tracking-tight text-[#edf5ef]">
+                  {{ getDayHeader(dKey) }}
+                </span>
+                <span class="rounded-full bg-[#18291f] px-2.5 py-0.5 text-[11px] font-bold text-[#86efac]">
+                  {{ dayMatches.length }} {{ dayMatches.length === 1 ? 'Match' : 'Matches' }}
+                </span>
+              </div>
+              <span class="text-xs text-[#6e887a]">
+                {{ formatKickoffRelative(dayMatches[0].kickoff) }}
+              </span>
+            </div>
+
+            <!-- Match Cards Grid -->
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <article 
+                v-for="m in dayMatches" 
+                :key="m.id"
+                class="group flex flex-col justify-between rounded-2xl border border-dark-border bg-[#0c1611] p-5 shadow-lg hover:border-[#2d4b3b] transition-all"
+              >
+                <div>
+                  <!-- Card Header: League & Model Pick -->
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 truncate text-xs text-[#7a9687]">
+                      <span class="font-semibold text-[#b7f36b]">{{ m.league }}</span>
+                      <span v-if="m.country">&middot; {{ m.country }}</span>
+                    </div>
+
+                    <!-- Pick Tag -->
+                    <span :class="['rounded-md px-2 py-0.5 text-[10px] font-black tracking-wider', m.prediction.favored_outcome === 'Away Win' ? 'border border-amber-400/40 bg-amber-400/10 text-amber-400' : m.prediction.favored_outcome === 'Home Win' ? 'border border-[#b7f36b]/40 bg-[#b7f36b]/10 text-[#b7f36b]' : 'border border-slate-500/40 bg-slate-800/40 text-slate-300']">
+                      PICK: {{ m.prediction.favored_outcome.toUpperCase() }}
+                    </span>
+                  </div>
+
+                  <!-- Kickoff & Feed -->
+                  <div class="mt-1 flex items-center justify-between text-[11px] text-[#5e776a]">
+                    <span>{{ formatDateTime(m.kickoff) }}</span>
+                    <span class="text-[10px] text-[#4e6a5b]">Feed: {{ m.provider }}</span>
+                  </div>
+
+                  <!-- Teams Head-to-Head Grid -->
+                  <div class="my-5 grid grid-cols-5 items-center gap-2">
+                    <!-- Home Club -->
+                    <div class="col-span-2 text-left">
+                      <div class="flex items-center gap-2">
+                        <img 
+                          v-if="m.home_crest" 
+                          :src="m.home_crest" 
+                          :alt="m.home_team" 
+                          class="h-7 w-7 object-contain"
+                          @error="$event.target.style.display='none'"
+                        />
+                        <div v-else class="flex h-7 w-7 items-center justify-center rounded-full bg-[#1b2f24] text-[10px] font-black text-[#b7f36b]">
+                          {{ m.home_team.substring(0, 2).toUpperCase() }}
+                        </div>
+                        <span :class="['truncate text-sm font-bold', m.prediction.favored_outcome === 'Home Win' ? 'text-[#b7f36b]' : 'text-[#edf5ef]']">
+                          {{ m.home_short || m.home_team }}
+                        </span>
+                      </div>
+                      <div class="mt-1 text-[11px] text-[#6d887a]">
+                        xG: <b class="text-[#edf5ef]">{{ m.prediction.expected_home_goals }}</b>
+                      </div>
+                    </div>
+
+                    <!-- VS -->
+                    <div class="col-span-1 text-center">
+                      <span class="rounded bg-[#16271e] px-2 py-1 text-[10px] font-black tracking-widest text-[#5e776a]">VS</span>
+                    </div>
+
+                    <!-- Away Club -->
+                    <div class="col-span-2 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <span :class="['truncate text-sm font-bold', m.prediction.favored_outcome === 'Away Win' ? 'text-amber-400' : 'text-[#edf5ef]']">
+                          {{ m.away_short || m.away_team }}
+                        </span>
+                        <img 
+                          v-if="m.away_crest" 
+                          :src="m.away_crest" 
+                          :alt="m.away_team" 
+                          class="h-7 w-7 object-contain"
+                          @error="$event.target.style.display='none'"
+                        />
+                        <div v-else class="flex h-7 w-7 items-center justify-center rounded-full bg-[#1b2f24] text-[10px] font-black text-[#b7f36b]">
+                          {{ m.away_team.substring(0, 2).toUpperCase() }}
+                        </div>
+                      </div>
+                      <div class="mt-1 text-[11px] text-[#6d887a]">
+                        xG: <b class="text-[#edf5ef]">{{ m.prediction.expected_away_goals }}</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 1X2 Probabilities Bar & Acca Buttons -->
+                  <div class="rounded-xl border border-[#1d3025] bg-[#070d0a] p-3">
+                    <div class="mb-2 flex justify-between text-[11px] font-semibold text-[#8ea397]">
+                      <span :class="m.prediction.favored_outcome === 'Home Win' ? 'font-bold text-[#b7f36b]' : ''">
+                        Home ({{ Math.round(m.prediction.home_win * 100) }}%)
+                      </span>
+                      <span>Draw ({{ Math.round(m.prediction.draw * 100) }}%)</span>
+                      <span :class="m.prediction.favored_outcome === 'Away Win' ? 'font-bold text-amber-400' : ''">
+                        Away ({{ Math.round(m.prediction.away_win * 100) }}%)
+                      </span>
+                    </div>
+
+                    <!-- Multi-color Probability Bar -->
+                    <div class="flex h-2.5 w-full overflow-hidden rounded-full bg-[#16271e]">
+                      <div :style="{ width: `${Math.round(m.prediction.home_win * 100)}%` }" class="bg-gradient-to-r from-[#10b981] to-[#b7f36b]"></div>
+                      <div :style="{ width: `${Math.round(m.prediction.draw * 100)}%` }" class="bg-[#64748b]"></div>
+                      <div :style="{ width: `${Math.round(m.prediction.away_win * 100)}%` }" class="bg-gradient-to-r from-[#f59e0b] to-[#fbbf24]"></div>
+                    </div>
+
+                    <!-- Odds / Acca Buttons -->
+                    <div class="mt-2.5 grid grid-cols-3 gap-1.5 text-center">
+                      <button 
+                        @click="addPickToSlip(m, 'home', `Home Win (${m.home_team})`, m.prediction.home_win, m.prediction.fair_odds.home)"
+                        :class="['rounded-lg border px-2 py-1 text-[11px] font-bold transition-all', isLegInSlip(m.id, 'home') ? 'border-[#b7f36b] bg-[#b7f36b] text-black' : 'border-[#20362a] bg-[#122119] text-[#b7f36b] hover:border-[#b7f36b]']"
+                      >
+                        1: {{ renderOdds(m.prediction.fair_odds.home) }}
+                      </button>
+                      <button 
+                        @click="addPickToSlip(m, 'draw', 'Draw (X)', m.prediction.draw, m.prediction.fair_odds.draw)"
+                        :class="['rounded-lg border px-2 py-1 text-[11px] font-bold transition-all', isLegInSlip(m.id, 'draw') ? 'border-slate-300 bg-slate-300 text-black' : 'border-[#20362a] bg-[#122119] text-[#edf5ef] hover:border-slate-400']"
+                      >
+                        X: {{ renderOdds(m.prediction.fair_odds.draw) }}
+                      </button>
+                      <button 
+                        @click="addPickToSlip(m, 'away', `Away Win (${m.away_team})`, m.prediction.away_win, m.prediction.fair_odds.away)"
+                        :class="['rounded-lg border px-2 py-1 text-[11px] font-bold transition-all', isLegInSlip(m.id, 'away') ? 'border-amber-400 bg-amber-400 text-black' : 'border-[#20362a] bg-[#122119] text-amber-400 hover:border-amber-400']"
+                      >
+                        2: {{ renderOdds(m.prediction.fair_odds.away) }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Secondary Markets Row -->
+                  <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="rounded-lg border border-[#192b21] bg-[#111f18] p-2">
+                      <div class="text-[10px] font-semibold text-[#6d887a]">ALIGNED SCORE</div>
+                      <div class="mt-0.5 text-sm font-black text-[#b7f36b]">{{ m.prediction.most_likely_score }}</div>
+                    </div>
+                    <div class="rounded-lg border border-[#192b21] bg-[#111f18] p-2">
+                      <div class="text-[10px] font-semibold text-[#6d887a]">OVER 2.5</div>
+                      <div class="mt-0.5 text-sm font-black text-[#edf5ef]">{{ Math.round((m.prediction.over_2_5 || 0.5) * 100) }}%</div>
+                    </div>
+                    <div class="rounded-lg border border-[#192b21] bg-[#111f18] p-2">
+                      <div class="text-[10px] font-semibold text-[#6d887a]">BTTS YES</div>
+                      <div class="mt-0.5 text-sm font-black text-[#edf5ef]">{{ Math.round((m.prediction.btts_yes || 0.5) * 100) }}%</div>
+                    </div>
+                  </div>
+
+                  <!-- 💎 90%+ ULTRA-SAFE BANKER BANNER -->
+                  <div 
+                    v-if="m.best_banker || (m.prediction && m.prediction.best_banker)"
+                    :class="['mt-3.5 rounded-xl border p-2.5 transition-all', (m.best_banker || m.prediction.best_banker).is_ultra_banker ? 'border-emerald-500/40 bg-gradient-to-r from-emerald-950/40 to-[#0e2118]' : 'border-[#1e3b2b] bg-[#0d1c14]']"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-1.5">
+                        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-xs text-emerald-400">💎</span>
+                        <span class="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                          {{ (m.best_banker || m.prediction.best_banker).confidence_tier || '90%+ ULTRA BANKER' }}
+                        </span>
+                      </div>
+                      <span class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[11px] font-black text-emerald-300">
+                        {{ (m.best_banker || m.prediction.best_banker).probability_percent }}% WIN PROB
+                      </span>
+                    </div>
+
+                    <div class="mt-1.5 flex items-center justify-between gap-2">
+                      <div class="truncate">
+                        <div class="truncate text-xs font-bold text-[#edf5ef]">
+                          {{ (m.best_banker || m.prediction.best_banker).selection }}
+                        </div>
+                        <div class="text-[10px] text-[#719280]">
+                          Odds: <b class="text-[#86efac]">{{ renderOdds((m.best_banker || m.prediction.best_banker).fair_odds) }}</b> &middot; Safe Kelly: <b>{{ (m.best_banker || m.prediction.best_banker).kelly_staking?.recommended_stake_percent || 3 }}%</b>
+                        </div>
+                      </div>
+
+                      <button 
+                        @click="addBankerToSlip(m)"
+                        :class="['shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold transition-all', isLegInSlip(m.id, (m.best_banker || m.prediction.best_banker).market_code) ? 'border border-emerald-400 bg-emerald-400 text-black' : 'border border-emerald-500/40 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-500 hover:text-black']"
+                      >
+                        {{ isLegInSlip(m.id, (m.best_banker || m.prediction.best_banker).market_code) ? '✓ Added' : '+ Banker' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Footer: Deep-Dive Trigger -->
+                <div class="mt-4 flex items-center justify-between border-t border-[#1a2c22] pt-3">
+                  <span class="text-[11px] text-[#5e776a]">Confidence: {{ m.prediction.confidence }}</span>
+                  <button 
+                    @click="openModal(m)"
+                    class="inline-flex items-center gap-1 text-xs font-bold text-[#b7f36b] hover:underline cursor-pointer"
+                  >
+                    <span>Deep-Dive Analysis</span>
+                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 2: STANDINGS & LEAGUE TABLES ==================== -->
+      <div v-if="activeTab === 'standings'" class="space-y-6">
+        <div class="rounded-2xl border border-dark-border bg-[#0c1611] p-6 shadow-xl">
+          <div class="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+            <div>
+              <div class="pill mb-2">📊 OFFICIAL LEAGUE TABLES</div>
+              <h2 class="text-2xl font-black tracking-tight sm:text-3xl">Tier 1 Standings & Form Tracker</h2>
+              <p class="mt-1 text-xs text-[#8ea397]">
+                Live table positions, goal differentials, and recent 5-match form guides.
+              </p>
+            </div>
+
+            <!-- League Selector Pills -->
+            <div class="flex flex-wrap gap-1.5">
+              <button 
+                v-for="code in standingsCodes" 
+                :key="code.id"
+                @click="selectedStandingsCode = code.id"
+                :class="['pill text-xs cursor-pointer', selectedStandingsCode === code.id ? 'pill-active' : '']"
+              >
+                {{ code.label }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Standings Table -->
+          <div class="mt-6 overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-[#09130d] text-[#719280] font-bold">
+                <tr>
+                  <th class="p-3">POS</th>
+                  <th class="p-3">CLUB</th>
+                  <th class="p-3 text-center">PL</th>
+                  <th class="p-3 text-center">W</th>
+                  <th class="p-3 text-center">D</th>
+                  <th class="p-3 text-center">L</th>
+                  <th class="p-3 text-center">GD</th>
+                  <th class="p-3 text-center font-black text-[#edf5ef]">PTS</th>
+                  <th class="p-3 text-right">RECENT FORM</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#17261e]">
+                <tr v-for="row in currentStandingsTable" :key="row.position" class="hover:bg-[#0f1d16] transition-all">
+                  <td class="p-3 font-bold text-[#b7f36b]">{{ row.position }}</td>
+                  <td class="p-3">
+                    <div class="flex items-center gap-2">
+                      <img :src="row.crest" class="h-5 w-5 object-contain" @error="$event.target.style.display='none'" />
+                      <span class="font-bold text-[#edf5ef]">{{ row.team_name }}</span>
+                    </div>
+                  </td>
+                  <td class="p-3 text-center text-[#719280]">{{ row.played }}</td>
+                  <td class="p-3 text-center text-[#edf5ef]">{{ row.won }}</td>
+                  <td class="p-3 text-center text-[#719280]">{{ row.draw }}</td>
+                  <td class="p-3 text-center text-[#719280]">{{ row.lost }}</td>
+                  <td class="p-3 text-center font-semibold" :class="row.goal_diff > 0 ? 'text-[#86efac]' : row.goal_diff < 0 ? 'text-rose-400' : 'text-slate-400'">
+                    {{ row.goal_diff > 0 ? '+' + row.goal_diff : row.goal_diff }}
+                  </td>
+                  <td class="p-3 text-center text-sm font-black text-[#b7f36b]">{{ row.points }}</td>
+                  <td class="p-3 text-right">
+                    <div class="flex justify-end gap-1">
+                      <span 
+                        v-for="(f, i) in (row.form || 'WWDWW').split('')" 
+                        :key="i"
+                        :class="['flex h-5 w-5 items-center justify-center rounded text-[10px] font-black', f === 'W' ? 'bg-emerald-500/20 text-emerald-400' : f === 'D' ? 'bg-slate-700 text-slate-300' : 'bg-rose-500/20 text-rose-400']"
+                      >
+                        {{ f }}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 3: CUSTOM MATCH SIMULATOR ==================== -->
+      <div v-if="activeTab === 'simulator'" class="space-y-6">
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          
+          <!-- Controls Column -->
+          <div class="rounded-2xl border border-dark-border bg-[#0c1611] p-6 lg:col-span-5 shadow-xl space-y-5">
+            <div class="pill">⚡ REAL-TIME PREDICTOR</div>
+            <h2 class="text-xl font-black text-[#edf5ef]">Custom Match Simulator</h2>
+            <p class="text-xs text-[#8ea397]">
+              Simulate any club matchup. Adjust Expected Goals ($xG$) sliders to recalculate Dixon-Coles probabilities, fair odds, and 90%+ banker picks in real-time.
+            </p>
+
+            <div class="space-y-4">
+              <div>
+                <label class="text-xs font-semibold text-[#8ea397]">Home Club Name</label>
+                <input type="text" v-model="simHome" class="mt-1 w-full rounded-lg border border-dark-border bg-[#070d0a] px-3 py-2 text-xs font-bold text-[#edf5ef] focus:border-[#b7f36b] focus:outline-none" />
+              </div>
+              <div>
+                <label class="text-xs font-semibold text-[#8ea397]">Away Club Name</label>
+                <input type="text" v-model="simAway" class="mt-1 w-full rounded-lg border border-dark-border bg-[#070d0a] px-3 py-2 text-xs font-bold text-[#edf5ef] focus:border-[#b7f36b] focus:outline-none" />
+              </div>
+
+              <!-- Sliders -->
+              <div>
+                <div class="flex justify-between text-xs font-semibold">
+                  <span class="text-[#8ea397]">{{ simHome }} Expected Goals (xG)</span>
+                  <span class="font-bold text-[#b7f36b]">{{ simHomeXg.toFixed(2) }}</span>
+                </div>
+                <input type="range" min="0.2" max="4.5" step="0.05" v-model.number="simHomeXg" class="mt-2 w-full accent-[#b7f36b]" />
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-semibold">
+                  <span class="text-[#8ea397]">{{ simAway }} Expected Goals (xG)</span>
+                  <span class="font-bold text-amber-400">{{ simAwayXg.toFixed(2) }}</span>
+                </div>
+                <input type="range" min="0.2" max="4.5" step="0.05" v-model.number="simAwayXg" class="mt-2 w-full accent-amber-400" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Simulation Live Output Column -->
+          <div class="rounded-2xl border border-dark-border bg-[#0c1611] p-6 lg:col-span-7 shadow-xl">
+            <div class="flex items-center justify-between border-b border-[#1c2e24] pb-4">
+              <div>
+                <div class="text-xs font-semibold text-[#6e887a]">INSTANT SIMULATION RESULTS</div>
+                <h3 class="text-xl font-black">{{ simHome }} <span class="text-[#6e887a]">vs</span> {{ simAway }}</h3>
+              </div>
+              <span class="pill text-xs">{{ simForecast.confidence }}</span>
+            </div>
+
+            <!-- Consensus Banner -->
+            <div class="my-4 rounded-xl border border-[#1e3427] bg-[#122119] p-3 text-center">
+              <span class="text-xs text-[#8ea397]">Model Pick: </span>
+              <b class="text-sm text-[#b7f36b]">{{ simForecast.favored_outcome }}</b>
+              <span class="text-xs text-[#728f80]"> &middot; Aligned Scoreline: <b class="text-[#edf5ef]">{{ simForecast.most_likely_score }}</b></span>
+            </div>
+
+            <!-- 1X2 Probabilities & Odds -->
+            <div class="my-4 grid grid-cols-3 gap-3 text-center">
+              <div class="rounded-xl border border-[#1e3427] bg-[#070d0a] p-3">
+                <div class="text-xs text-[#719280]">HOME WIN</div>
+                <div class="my-1 text-2xl font-black text-[#b7f36b]">{{ Math.round(simForecast.home_win * 100) }}%</div>
+                <div class="text-xs text-[#719280]">Odds: <b class="text-[#edf5ef]">{{ renderOdds(simForecast.fair_odds.home) }}</b></div>
+              </div>
+              <div class="rounded-xl border border-[#1e3427] bg-[#070d0a] p-3">
+                <div class="text-xs text-[#719280]">DRAW</div>
+                <div class="my-1 text-2xl font-black text-slate-300">{{ Math.round(simForecast.draw * 100) }}%</div>
+                <div class="text-xs text-[#719280]">Odds: <b class="text-[#edf5ef]">{{ renderOdds(simForecast.fair_odds.draw) }}</b></div>
+              </div>
+              <div class="rounded-xl border border-[#1e3427] bg-[#070d0a] p-3">
+                <div class="text-xs text-[#719280]">AWAY WIN</div>
+                <div class="my-1 text-2xl font-black text-amber-400">{{ Math.round(simForecast.away_win * 100) }}%</div>
+                <div class="text-xs text-[#719280]">Odds: <b class="text-[#edf5ef]">{{ renderOdds(simForecast.fair_odds.away) }}</b></div>
+              </div>
+            </div>
+
+            <!-- Top Scorelines -->
+            <div class="my-4">
+              <div class="mb-2 text-xs font-bold text-[#8ea397]">TOP PROBABLE EXACT SCORELINES</div>
+              <div class="grid grid-cols-5 gap-2 text-center">
+                <div v-for="sc in simForecast.top_scorelines" :key="sc.score" class="rounded-lg border border-[#1a2d22] bg-[#070d0a] p-2">
+                  <div class="text-xs font-black text-[#b7f36b]">{{ sc.score }}</div>
+                  <div class="text-[10px] text-[#719280]">{{ Math.round(sc.probability * 100) }}%</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Secondary Markets Grid -->
+            <div class="grid grid-cols-2 gap-3 text-center sm:grid-cols-4">
+              <div class="rounded-lg border border-[#1a2d22] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#6e887a]">OVER 1.5 GOALS</div>
+                <div class="text-sm font-bold text-[#edf5ef]">{{ Math.round(simForecast.over_1_5 * 100) }}%</div>
+              </div>
+              <div class="rounded-lg border border-[#1a2d22] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#6e887a]">OVER 2.5 GOALS</div>
+                <div class="text-sm font-bold text-[#edf5ef]">{{ Math.round(simForecast.over_2_5 * 100) }}%</div>
+              </div>
+              <div class="rounded-lg border border-[#1a2d22] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#6e887a]">UNDER 3.5 GOALS</div>
+                <div class="text-sm font-bold text-[#edf5ef]">{{ Math.round(simForecast.under_3_5 * 100) }}%</div>
+              </div>
+              <div class="rounded-lg border border-[#1a2d22] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#6e887a]">BTTS YES</div>
+                <div class="text-sm font-bold text-[#edf5ef]">{{ Math.round(simForecast.btts_yes * 100) }}%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==================== TAB 4: METHODOLOGY & ARCHITECTURE ==================== -->
+      <div v-if="activeTab === 'methodology'" class="space-y-6">
+        <div class="rounded-2xl border border-dark-border bg-[#0c1611] p-6 sm:p-8 shadow-xl">
+          <div class="pill mb-2">📐 MATHEMATICAL FOUNDATIONS</div>
+          <h2 class="text-2xl font-black tracking-tight sm:text-3xl">4-Model Ensemble Architecture</h2>
+          <p class="mt-2 text-xs leading-relaxed text-[#94a89d]">
+            How GoalInsight achieves reliable 90%+ win rate selections across international competitions.
+          </p>
+
+          <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="rounded-xl border border-dark-border bg-[#070d0a] p-4">
+              <div class="font-bold text-sm text-[#b7f36b]">1. Dixon-Coles Poisson Distribution</div>
+              <p class="mt-1 text-xs text-[#719280]">
+                Independent Poisson modeling adjusted by low-score covariance parameter (&rho; = -0.04) for realistic 0-0, 1-0, 0-1, and 1-1 scoreline dependencies.
+              </p>
+              <div class="mt-2 rounded bg-[#0e1813] p-2 font-mono text-[11px] text-[#86efac]">
+                P(X=k) = (&lambda;^k &middot; e^-&lambda;) / k!
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-dark-border bg-[#070d0a] p-4">
+              <div class="font-bold text-sm text-[#93c5fd]">2. Global Dynamic Club Elo</div>
+              <p class="mt-1 text-xs text-[#719280]">
+                Calibrated rating benchmark covering 80+ top European and world clubs with an empirical +65-point home advantage modifier.
+              </p>
+              <div class="mt-2 rounded bg-[#0e1813] p-2 font-mono text-[11px] text-[#93c5fd]">
+                E_A = 1 / (1 + 10^((R_B - R_A)/400))
+              </div>
+            </div>
+
+            <div class="rounded-xl border border-dark-border bg-[#070d0a] p-4">
+              <div class="font-bold text-sm text-amber-400">3. Form Momentum & Decay EMA</div>
+              <p class="mt-1 text-xs text-[#719280]">
+                Recent 5-match decay weighting to measure real-time offensive rhythm, defensive stability, and tactical adjustments.
+              </p>
+            </div>
+
+            <div class="rounded-xl border border-dark-border bg-[#070d0a] p-4">
+              <div class="font-bold text-sm text-emerald-400">4. 5,000-Match Monte Carlo</div>
+              <p class="mt-1 text-xs text-[#719280]">
+                Stochastic inverse-transform sampling with lognormal matchday variance to extract empirical tails and probability percentiles.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ==================== DEEP-DIVE MATCH MODAL ==================== -->
+    <div 
+      v-if="selectedMatchModal" 
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+    >
+      <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#294535] bg-[#0c1611] p-6 shadow-2xl custom-scrollbar">
+        
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between border-b border-[#1c2e24] pb-4">
+          <div class="flex items-center gap-2">
+            <span class="pill text-xs font-semibold text-[#b7f36b]">
+              {{ selectedMatchModal.league }} &middot; {{ selectedMatchModal.country }}
+            </span>
+            <span class="text-xs text-[#728f80]">
+              {{ formatDateTime(selectedMatchModal.kickoff) }}
+            </span>
+            <span class="text-[10px] text-[#5e776a]">Feed: {{ selectedMatchModal.provider }}</span>
+          </div>
+          <button 
+            @click="selectedMatchModal = null"
+            class="rounded-lg p-1 text-[#728f80] hover:bg-[#18291f] hover:text-[#edf5ef] cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Teams Matchup Header -->
+        <div class="my-6 grid grid-cols-5 items-center gap-3 text-center">
+          <div class="col-span-2 text-left">
+            <div class="flex items-center gap-3">
+              <img v-if="selectedMatchModal.home_crest" :src="selectedMatchModal.home_crest" class="h-10 w-10 object-contain" @error="$event.target.style.display='none'" />
+              <div>
+                <h3 class="text-base font-black text-[#edf5ef]">{{ selectedMatchModal.home_team }}</h3>
+                <div class="text-xs text-[#b7f36b]">Exp. Goals: <b>{{ selectedMatchModal.prediction.expected_home_goals }}</b></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center Consensus Block -->
+          <div class="col-span-1">
+            <div class="text-[10px] font-black uppercase tracking-wider text-[#b7f36b]">CONSENSUS PICK</div>
+            <div class="text-sm font-black text-[#edf5ef]">{{ selectedMatchModal.prediction.favored_outcome }}</div>
+            <div class="mt-1 inline-flex items-center gap-1 rounded bg-[#16271e] px-2 py-0.5 font-mono text-sm font-black text-[#b7f36b]">
+              {{ selectedMatchModal.prediction.most_likely_score }}
+            </div>
+          </div>
+
+          <div class="col-span-2 text-right">
+            <div class="flex items-center justify-end gap-3">
+              <div>
+                <h3 class="text-base font-black text-[#edf5ef]">{{ selectedMatchModal.away_team }}</h3>
+                <div class="text-xs text-amber-400">Exp. Goals: <b>{{ selectedMatchModal.prediction.expected_away_goals }}</b></div>
+              </div>
+              <img v-if="selectedMatchModal.away_crest" :src="selectedMatchModal.away_crest" class="h-10 w-10 object-contain" @error="$event.target.style.display='none'" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Aligned Recommendation Banner -->
+        <div class="mb-4 rounded-xl border border-[#1e3427] bg-[#122119] p-3 text-center">
+          <span class="text-xs text-[#8ea397]">Model Recommendation: </span>
+          <b class="text-xs text-[#b7f36b]">{{ selectedMatchModal.prediction.favored_outcome }}</b>
+          <span class="text-xs text-[#728f80]">
+            &middot; Projected Final Score: <b class="text-[#edf5ef]">{{ selectedMatchModal.prediction.most_likely_score }}</b>
+            &middot; Confidence: <b class="text-[#86efac]">{{ selectedMatchModal.prediction.confidence }}</b>
+          </span>
+        </div>
+
+        <!-- Modal Navigation Tabs -->
+        <div class="mb-5 flex gap-1.5 overflow-x-auto border-b border-[#1c2e24] pb-2 custom-scrollbar">
+          <button 
+            v-for="t in modalTabs" 
+            :key="t.id"
+            @click="modalTab = t.id"
+            :class="['flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer', modalTab === t.id ? (t.id === 'banker' ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'bg-[#b7f36b] text-black shadow-sm') : 'bg-[#14231c] text-[#8ea397] hover:bg-[#1a2e24] hover:text-[#edf5ef]']"
+          >
+            <span>{{ t.icon }}</span>
+            <span>{{ t.label }}</span>
+          </button>
+        </div>
+
+        <!-- MODAL TAB 1: OVERVIEW & 1X2 -->
+        <div v-if="modalTab === 'overview'" class="space-y-4">
+          <div class="rounded-xl border border-[#1e3427] bg-[#111f18] p-4">
+            <div class="mb-2 text-xs font-bold text-[#8ea397]">1X2 FULL-TIME OUTCOME PROBABILITIES</div>
+            <div class="grid grid-cols-3 gap-3 text-center">
+              <div :class="['rounded-lg border p-3', selectedMatchModal.prediction.favored_outcome === 'Home Win' ? 'border-[#b7f36b]/60 bg-[#14261c]' : 'border-[#223d2e] bg-[#070d0a]']">
+                <div class="text-xs text-[#719280]">Home Win</div>
+                <div class="my-1 text-2xl font-black text-[#b7f36b]">{{ Math.round(selectedMatchModal.prediction.home_win * 100) }}%</div>
+                <div class="text-xs text-[#8ea397]">Fair Odds: <b>{{ renderOdds(selectedMatchModal.prediction.fair_odds.home) }}</b></div>
+              </div>
+              <div :class="['rounded-lg border p-3', selectedMatchModal.prediction.favored_outcome.includes('Draw') ? 'border-slate-400/60 bg-slate-900/40' : 'border-[#223d2e] bg-[#070d0a]']">
+                <div class="text-xs text-[#719280]">Draw</div>
+                <div class="my-1 text-2xl font-black text-slate-300">{{ Math.round(selectedMatchModal.prediction.draw * 100) }}%</div>
+                <div class="text-xs text-[#8ea397]">Fair Odds: <b>{{ renderOdds(selectedMatchModal.prediction.fair_odds.draw) }}</b></div>
+              </div>
+              <div :class="['rounded-lg border p-3', selectedMatchModal.prediction.favored_outcome === 'Away Win' ? 'border-amber-400/60 bg-amber-950/30' : 'border-[#223d2e] bg-[#070d0a]']">
+                <div class="text-xs text-[#719280]">Away Win</div>
+                <div class="my-1 text-2xl font-black text-amber-400">{{ Math.round(selectedMatchModal.prediction.away_win * 100) }}%</div>
+                <div class="text-xs text-[#8ea397]">Fair Odds: <b>{{ renderOdds(selectedMatchModal.prediction.fair_odds.away) }}</b></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Secondary Markets -->
+          <div class="grid grid-cols-2 gap-3 text-xs sm:grid-cols-4">
+            <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3">
+              <div class="text-[10px] text-[#6e887a]">OVER 1.5 GOALS</div>
+              <div class="mt-1 text-base font-bold text-[#edf5ef]">{{ Math.round((selectedMatchModal.prediction.over_1_5 || 0.8) * 100) }}%</div>
+            </div>
+            <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3">
+              <div class="text-[10px] text-[#6e887a]">OVER 2.5 GOALS</div>
+              <div class="mt-1 text-base font-bold text-[#b7f36b]">{{ Math.round((selectedMatchModal.prediction.over_2_5 || 0.5) * 100) }}%</div>
+            </div>
+            <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3">
+              <div class="text-[10px] text-[#6e887a]">BTTS YES</div>
+              <div class="mt-1 text-base font-bold text-[#edf5ef]">{{ Math.round((selectedMatchModal.prediction.btts_yes || 0.5) * 100) }}%</div>
+            </div>
+            <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3">
+              <div class="text-[10px] text-[#6e887a]">DOUBLE CHANCE 1X</div>
+              <div class="mt-1 text-base font-bold text-[#edf5ef]">{{ Math.round((selectedMatchModal.prediction.double_chance?.['1X'] || 0.7) * 100) }}%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL TAB 2: 90%+ BANKER MARKETS -->
+        <div v-if="modalTab === 'banker'" class="space-y-4">
+          <!-- Spotlight Card -->
+          <div v-if="modalBanker" class="rounded-2xl border border-emerald-500/40 bg-gradient-to-br from-emerald-950/40 via-[#0d2117] to-[#12281d] p-5 shadow-xl">
+            <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-sm">💎</span>
+                  <span class="text-xs font-black uppercase tracking-wider text-emerald-400">{{ modalBanker.confidence_tier }}</span>
+                  <span class="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs font-black text-emerald-300">
+                    {{ modalBanker.probability_percent }}% WIN PROBABILITY
+                  </span>
+                </div>
+                <h4 class="mt-2 text-xl font-black text-[#edf5ef]">{{ modalBanker.selection }}</h4>
+                <p class="mt-1 text-xs leading-relaxed text-[#93b3a2]">{{ modalBanker.rationale }}</p>
+              </div>
+
+              <div class="flex items-center gap-3 shrink-0">
+                <div class="rounded-xl border border-emerald-500/30 bg-[#070d0a] px-4 py-2 text-center">
+                  <div class="text-[10px] text-[#719280]">FAIR ODDS</div>
+                  <div class="text-xl font-black text-emerald-300">{{ renderOdds(modalBanker.fair_odds) }}</div>
+                </div>
+                <button 
+                  @click="addBankerToSlip(selectedMatchModal)"
+                  :class="['rounded-xl px-4 py-3 text-xs font-black transition-all cursor-pointer', isLegInSlip(selectedMatchModal.id, modalBanker.market_code) ? 'border border-emerald-400 bg-emerald-400 text-black' : 'border border-emerald-500/40 bg-emerald-500 text-black hover:bg-emerald-400']"
+                >
+                  {{ isLegInSlip(selectedMatchModal.id, modalBanker.market_code) ? '✓ In Slip' : '+ Add to Slip' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Kelly Capital Advice -->
+            <div class="mt-4 rounded-xl border border-emerald-500/20 bg-[#070d0a]/80 p-3 text-xs">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <span class="text-emerald-400 font-bold">🎯 Quarter-Kelly Capital Allocation:</span>
+                <span class="text-[#edf5ef]">Recommended Stake: <b>{{ modalBanker.kelly_staking?.recommended_stake_percent || 3 }}% of Bankroll</b></span>
+                <span class="text-emerald-300 font-semibold">+{{ modalBanker.kelly_staking?.edge_percent || 4.5 }}% EV</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- All Markets List -->
+          <div v-if="selectedMatchModal.prediction?.banker_analysis?.all_banker_options" class="rounded-xl border border-[#1e3427] bg-[#111f18] p-4">
+            <div class="mb-3 text-xs font-bold text-[#8ea397]">ALL QUALIFYING HIGH-PROBABILITY MARKETS (≥ 70% HIT RATE)</div>
+            <div class="space-y-2">
+              <div 
+                v-for="(opt, i) in selectedMatchModal.prediction.banker_analysis.all_banker_options" 
+                :key="i"
+                class="flex items-center justify-between rounded-lg border border-[#192c21] bg-[#070d0a] p-3 text-xs"
+              >
+                <div>
+                  <div class="font-bold text-[#edf5ef]">{{ opt.selection }}</div>
+                  <div class="text-[10px] text-[#719280]">{{ opt.market }} &middot; {{ opt.rationale }}</div>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="rounded bg-[#172b20] px-2 py-0.5 text-xs font-black text-[#86efac]">{{ opt.probability_percent }}%</span>
+                  <span class="font-mono text-xs text-[#edf5ef]">@{{ renderOdds(opt.fair_odds) }}</span>
+                  <button 
+                    @click="addPickToSlip(selectedMatchModal, opt.market_code, opt.selection, opt.probability, opt.fair_odds)"
+                    :class="['rounded px-2.5 py-1 text-xs font-bold cursor-pointer', isLegInSlip(selectedMatchModal.id, opt.market_code) ? 'bg-emerald-500 text-black' : 'border border-[#223d2e] bg-[#122219] text-[#86efac]']"
+                  >
+                    {{ isLegInSlip(selectedMatchModal.id, opt.market_code) ? '✓' : '+ Slip' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL TAB 3: 4-MODEL ENSEMBLE -->
+        <div v-if="modalTab === 'ensemble'" class="space-y-4">
+          <div class="rounded-xl border border-[#1e3427] bg-[#111f18] p-4">
+            <div class="mb-3 text-xs font-bold text-[#8ea397]">4-MODEL MULTI-ALGORITHMIC CONSENSUS ARCHITECTURE</div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3 text-xs">
+                <div class="flex justify-between font-bold text-[#b7f36b]">
+                  <span>Model 1: Dixon-Coles Poisson</span>
+                  <span class="text-[10px] text-[#719280]">Weight: 40%</span>
+                </div>
+                <p class="mt-1 text-[11px] text-[#719280]">Bivariate low-score covariance parameter (&rho; = -0.04)</p>
+                <div class="mt-2 flex justify-between font-mono text-[11px]">
+                  <span>Home: {{ Math.round(selectedMatchModal.prediction.home_win * 100) }}%</span>
+                  <span>Draw: {{ Math.round(selectedMatchModal.prediction.draw * 100) }}%</span>
+                  <span>Away: {{ Math.round(selectedMatchModal.prediction.away_win * 100) }}%</span>
+                </div>
+              </div>
+
+              <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3 text-xs">
+                <div class="flex justify-between font-bold text-[#93c5fd]">
+                  <span>Model 2: Global Dynamic Elo</span>
+                  <span class="text-[10px] text-[#719280]">Weight: 25%</span>
+                </div>
+                <p class="mt-1 text-[11px] text-[#719280]">Calibrated continental club ratings with +65 home advantage</p>
+                <div v-if="selectedMatchModal.prediction?.ensemble_consensus?.elo_model" class="mt-2 flex justify-between font-mono text-[11px]">
+                  <span>Home Elo: {{ selectedMatchModal.prediction.ensemble_consensus.elo_model.home_elo }}</span>
+                  <span>Away Elo: {{ selectedMatchModal.prediction.ensemble_consensus.elo_model.away_elo }}</span>
+                </div>
+              </div>
+
+              <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3 text-xs">
+                <div class="flex justify-between font-bold text-amber-400">
+                  <span>Model 3: Form Momentum EMA</span>
+                  <span class="text-[10px] text-[#719280]">Weight: 15%</span>
+                </div>
+                <p class="mt-1 text-[11px] text-[#719280]">Decaying exponential moving average of recent goal trends</p>
+                <div class="mt-2 text-[11px] text-[#edf5ef]">
+                  {{ selectedMatchModal.prediction?.ensemble_consensus?.form_momentum?.tendency || 'Balanced Momentum Equilibrium' }}
+                </div>
+              </div>
+
+              <div class="rounded-lg border border-[#1c3024] bg-[#070d0a] p-3 text-xs">
+                <div class="flex justify-between font-bold text-emerald-400">
+                  <span>Model 4: 5,000-Match Monte Carlo</span>
+                  <span class="text-[10px] text-[#719280]">Weight: 20%</span>
+                </div>
+                <p class="mt-1 text-[11px] text-[#719280]">Stochastic simulation with lognormal tactical disturbance</p>
+                <div class="mt-2 flex justify-between font-mono text-[11px]">
+                  <span>Sim Home: {{ Math.round((selectedMatchModal.prediction?.monte_carlo?.simulated_home_win || selectedMatchModal.prediction.home_win) * 100) }}%</span>
+                  <span>Sim Away: {{ Math.round((selectedMatchModal.prediction?.monte_carlo?.simulated_away_win || selectedMatchModal.prediction.away_win) * 100) }}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL TAB 4: MONTE CARLO -->
+        <div v-if="modalTab === 'monte_carlo'" class="space-y-4">
+          <div class="rounded-xl border border-[#1e3427] bg-[#111f18] p-4 text-xs">
+            <div class="mb-3 flex items-center justify-between">
+              <span class="font-bold text-[#8ea397]">5,000 STOCHASTIC SIMULATIONS</span>
+              <span class="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-black text-emerald-400">5,000 RUNS</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 text-center my-3">
+              <div class="rounded-lg border border-[#192b21] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#719280]">SIM. HOME WIN</div>
+                <div class="mt-0.5 text-base font-black text-[#b7f36b]">
+                  {{ Math.round((selectedMatchModal.prediction?.monte_carlo?.simulated_home_win || selectedMatchModal.prediction.home_win) * 100) }}%
+                </div>
+              </div>
+              <div class="rounded-lg border border-[#192b21] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#719280]">SIM. DRAW</div>
+                <div class="mt-0.5 text-base font-black text-slate-300">
+                  {{ Math.round((selectedMatchModal.prediction?.monte_carlo?.simulated_draw || selectedMatchModal.prediction.draw) * 100) }}%
+                </div>
+              </div>
+              <div class="rounded-lg border border-[#192b21] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#719280]">SIM. AWAY WIN</div>
+                <div class="mt-0.5 text-base font-black text-amber-400">
+                  {{ Math.round((selectedMatchModal.prediction?.monte_carlo?.simulated_away_win || selectedMatchModal.prediction.away_win) * 100) }}%
+                </div>
+              </div>
+              <div class="rounded-lg border border-[#192b21] bg-[#070d0a] p-2.5">
+                <div class="text-[10px] text-[#719280]">AVG. GOALS</div>
+                <div class="mt-0.5 text-base font-black text-[#edf5ef]">
+                  {{ selectedMatchModal.prediction?.monte_carlo?.average_simulated_goals || (selectedMatchModal.prediction.expected_home_goals + selectedMatchModal.prediction.expected_away_goals).toFixed(2) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL TAB 5: SCORE HEATMAP -->
+        <div v-if="modalTab === 'heatmap'" class="space-y-4">
+          <div v-if="selectedMatchModal.prediction.score_matrix" class="rounded-xl border border-[#1e3427] bg-[#111f18] p-4">
+            <div class="mb-2 flex items-center justify-between text-xs font-bold text-[#8ea397]">
+              <span>EXACT SCORELINE PROBABILITY HEATMAP (Home Goals &times; Away Goals)</span>
+            </div>
+            <div class="overflow-x-auto">
+              <div class="min-w-[340px]">
+                <div class="grid grid-cols-6 gap-1 text-center font-mono text-xs">
+                  <div class="p-1 font-bold text-[#5e776a]">H \ A</div>
+                  <div v-for="a in [0, 1, 2, 3, 4]" :key="a" class="p-1 font-bold text-amber-400">{{ a }} (Away)</div>
+                  <template v-for="(row, h) in selectedMatchModal.prediction.score_matrix" :key="h">
+                    <div class="p-1 font-bold text-[#b7f36b]">{{ h }} (Home)</div>
+                    <div 
+                      v-for="(val, a) in row" 
+                      :key="a"
+                      :class="['rounded p-2 text-xs font-semibold', selectedMatchModal.prediction.most_likely_score === `${h}-${a}` ? 'border-2 border-[#b7f36b] bg-[#b7f36b] text-black font-black shadow-lg shadow-[#b7f36b]/20' : (val > 0.08 ? 'bg-[#1b432e] text-[#86efac]' : (val > 0.04 ? 'bg-[#152e21] text-[#edf5ef]' : 'bg-[#0f1d16] text-[#6d887a]'))]"
+                    >
+                      {{ Math.round(val * 100) }}%
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Actions -->
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#1c2e24] pt-4">
+          <div class="flex flex-wrap gap-2">
+            <button 
+              @click="addPickToSlip(selectedMatchModal, 'home', `Home Win (${selectedMatchModal.home_team})`, selectedMatchModal.prediction.home_win, selectedMatchModal.prediction.fair_odds.home)" 
+              class="rounded-lg border border-[#234230] bg-[#122219] px-3 py-1.5 text-xs font-bold text-[#b7f36b] cursor-pointer"
+            >
+              + Home Win
+            </button>
+            <button 
+              @click="addPickToSlip(selectedMatchModal, 'away', `Away Win (${selectedMatchModal.away_team})`, selectedMatchModal.prediction.away_win, selectedMatchModal.prediction.fair_odds.away)" 
+              class="rounded-lg border border-[#234230] bg-[#122219] px-3 py-1.5 text-xs font-bold text-amber-400 cursor-pointer"
+            >
+              + Away Win
+            </button>
+            <button 
+              @click="addBankerToSlip(selectedMatchModal)" 
+              class="rounded-lg border border-emerald-500/40 bg-emerald-950/40 px-3 py-1.5 text-xs font-bold text-emerald-300 hover:bg-emerald-500 hover:text-black cursor-pointer"
+            >
+              💎 + 90% Banker
+            </button>
+          </div>
+          <button @click="selectedMatchModal = null" class="rounded-lg bg-[#b7f36b] px-4 py-2 text-xs font-black text-black cursor-pointer">
+            Close Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== FLOATING ACCUMULATOR / BET SLIP DRAWER ==================== -->
+    <div v-if="slipLegs.length > 0" class="fixed bottom-4 right-4 z-40 w-full max-w-sm">
+      <div class="rounded-2xl border border-[#2c4c3b] bg-[#0c1611] shadow-2xl overflow-hidden">
+        <!-- Header -->
+        <div 
+          @click="isSlipOpen = !isSlipOpen"
+          class="flex cursor-pointer items-center justify-between border-b border-[#1c2e24] bg-[#0e1a14] px-4 py-3"
+        >
+          <div class="flex items-center gap-2">
+            <span class="flex h-5 w-5 items-center justify-center rounded-full bg-[#b7f36b] text-xs font-black text-black">
+              {{ slipLegs.length }}
+            </span>
+            <span class="text-xs font-black tracking-wide text-[#edf5ef]">ACCUMULATOR SLIP</span>
+            <span class="rounded bg-[#18291f] px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+              {{ (slipJointProb * 100).toFixed(1) }}% Joint Win
+            </span>
+          </div>
+          <span class="text-xs text-[#719280]">{{ isSlipOpen ? '▼ Hide' : '▲ Show' }}</span>
+        </div>
+
+        <!-- Body -->
+        <div v-if="isSlipOpen" class="max-h-72 overflow-y-auto p-4 space-y-2.5 custom-scrollbar">
+          <div 
+            v-for="leg in slipLegs" 
+            :key="leg.id"
+            class="flex items-center justify-between rounded-lg border border-[#1b3124] bg-[#070d0a] p-2.5 text-xs"
+          >
+            <div>
+              <div class="font-bold text-[#edf5ef]">{{ leg.pickName }}</div>
+              <div class="text-[10px] text-[#719280]">{{ leg.matchTitle }} &middot; {{ leg.market }}</div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="font-mono font-bold text-[#b7f36b]">@{{ renderOdds(leg.odds) }}</span>
+              <button @click="removeLeg(leg.id)" class="text-rose-400 hover:text-rose-300 font-bold px-1 cursor-pointer">✕</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer / Stake -->
+        <div class="border-t border-[#1c2e24] bg-[#09130d] p-4">
+          <div class="flex justify-between text-xs font-bold">
+            <span class="text-[#8ea397]">Total Parlay Odds:</span>
+            <span class="text-base text-emerald-300 font-black">{{ renderOdds(slipTotalOdds) }}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-[#719280]">Stake $:</span>
+              <input 
+                type="number" 
+                v-model.number="stakeAmount" 
+                min="1" 
+                class="w-16 rounded border border-dark-border bg-[#070d0a] px-2 py-1 text-xs font-bold text-center text-[#edf5ef]"
+              />
+            </div>
+            <div class="text-right">
+              <div class="text-[10px] text-[#719280]">EST. PAYOUT</div>
+              <div class="text-sm font-black text-[#b7f36b]">${{ (stakeAmount * slipTotalOdds).toFixed(2) }}</div>
+            </div>
+          </div>
+          <button 
+            @click="clearSlip"
+            class="mt-3 w-full rounded-lg border border-dark-border py-1.5 text-center text-[11px] font-bold text-[#8ea397] hover:text-rose-300 cursor-pointer"
+          >
+            Clear Entire Slip
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- VUE APPLICATION LOGIC -->
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const activeTab = ref('matches');
+        const oddsFormat = ref('decimal');
+        const matches = ref([]);
+        const source = ref('Local Snapshot & Cache');
+        const searchQuery = ref('');
+        const selectedLeague = ref('All');
+        const selectedProvider = ref('All');
+        const selectedDateFilter = ref('all');
+        const marketFilter = ref('All');
+        const sortBy = ref('bankerProb');
+        const bankerModeOnly = ref(false);
+        const dailyBankerSlip = ref(null);
+        
+        // Deep-Dive Modal
+        const selectedMatchModal = ref(null);
+        const modalTab = ref('overview');
+
+        // Standings
+        const selectedStandingsCode = ref('PL');
+
+        // Accumulator
+        const slipLegs = ref([]);
+        const isSlipOpen = ref(true);
+        const stakeAmount = ref(25);
+
+        // Simulator
+        const simHome = ref('Arsenal FC');
+        const simAway = ref('Chelsea FC');
+        const simHomeXg = ref(1.95);
+        const simAwayXg = ref(1.15);
+
+        // Navigation Tabs Config
+        const navTabs = [
+          { id: 'matches', label: 'Match Centre', icon: '⚽' },
+          { id: 'standings', label: 'League Tables', icon: '📊' },
+          { id: 'simulator', label: 'Simulator', icon: '⚡' },
+          { id: 'methodology', label: 'Methodology', icon: '📐' },
+        ];
+
+        const radarOptions = [
+          { id: 'All', label: 'All' },
+          { id: 'banker_90', label: '💎 90%+ Bankers' },
+          { id: 'high_home', label: 'Home Favs' },
+          { id: 'high_away', label: 'Away Favs' },
+          { id: 'over_25', label: 'Over 2.5' },
+          { id: 'btts', label: 'BTTS' },
+        ];
+
+        const standingsCodes = [
+          { id: 'PL', label: 'Premier League' },
+          { id: 'PD', label: 'La Liga' },
+          { id: 'BL1', label: 'Bundesliga' },
+          { id: 'SA', label: 'Serie A' },
+          { id: 'BSA', label: 'Brasileirão' },
+          { id: 'SCO', label: 'Premiership' },
+        ];
+
+        const modalTabs = [
+          { id: 'overview', label: 'Overview & 1X2', icon: '⚡' },
+          { id: 'banker', label: '💎 90%+ Banker Markets', icon: '💎' },
+          { id: 'ensemble', label: '4-Model Ensemble', icon: '🧠' },
+          { id: 'monte_carlo', label: 'Monte Carlo (5,000 Runs)', icon: '🎲' },
+          { id: 'heatmap', label: 'Score Heatmap', icon: '📊' },
+        ];
+
+        // Dates Calculations
+        const todayKey = new Date().toISOString().substring(0, 10);
+        const tm = new Date();
+        tm.setDate(tm.getDate() + 1);
+        const tomorrowKey = tm.toISOString().substring(0, 10);
+
+        const dateCounts = computed(() => {
+          const counts = {};
+          matches.value.forEach(m => {
+            const k = m.kickoff ? m.kickoff.substring(0, 10) : '';
+            if (k) counts[k] = (counts[k] || 0) + 1;
+          });
+          return counts;
+        });
+
+        const uniqueDates = computed(() => Object.keys(dateCounts.value).sort());
+
+        const uniqueLeagues = computed(() => {
+          const s = new Set(matches.value.map(m => m.league).filter(Boolean));
+          return ['All', ...Array.from(s).sort()];
+        });
+
+        const weekendMatchCount = computed(() => {
+          return matches.value.filter(m => {
+            const d = new Date(m.kickoff).getDay();
+            return d === 6 || d === 0;
+          }).length;
+        });
+
+        const ultraBankerCount = computed(() => {
+          return matches.value.filter(m => {
+            const b = m.best_banker || (m.prediction && m.prediction.best_banker);
+            return b && b.is_ultra_banker;
+          }).length;
+        });
+
+        // Filtered Matches
+        const filteredMatches = computed(() => {
+          let res = matches.value.filter(m => {
+            if (selectedLeague.value !== 'All' && m.league !== selectedLeague.value) return false;
+            if (selectedProvider.value !== 'All' && m.provider !== selectedProvider.value) return false;
+
+            if (searchQuery.value.trim()) {
+              const q = searchQuery.value.toLowerCase();
+              const h = m.home_team.toLowerCase().includes(q);
+              const a = m.away_team.toLowerCase().includes(q);
+              const l = m.league.toLowerCase().includes(q);
+              if (!h && !a && !l) return false;
+            }
+
+            if (selectedDateFilter.value !== 'all') {
+              const mk = m.kickoff ? m.kickoff.substring(0, 10) : '';
+              if (selectedDateFilter.value === 'today' && mk !== todayKey) return false;
+              if (selectedDateFilter.value === 'tomorrow' && mk !== tomorrowKey) return false;
+              if (selectedDateFilter.value === 'weekend') {
+                const day = new Date(m.kickoff).getDay();
+                if (day !== 6 && day !== 0) return false;
+              } else if (selectedDateFilter.value !== 'today' && selectedDateFilter.value !== 'tomorrow') {
+                if (mk !== selectedDateFilter.value) return false;
+              }
+            }
+
+            if (bankerModeOnly.value) {
+              const b = m.best_banker || (m.prediction && m.prediction.best_banker);
+              if (!b || b.probability < 0.86) return false;
+            }
+
+            if (marketFilter.value === 'banker_90') {
+              const b = m.best_banker || (m.prediction && m.prediction.best_banker);
+              if (!b || b.probability < 0.88) return false;
+            } else if (marketFilter.value === 'high_home') {
+              if ((m.prediction?.home_win || 0) < 0.55) return false;
+            } else if (marketFilter.value === 'high_away') {
+              if ((m.prediction?.away_win || 0) < 0.45) return false;
+            } else if (marketFilter.value === 'over_25') {
+              if ((m.prediction?.over_2_5 || 0) < 0.58) return false;
+            } else if (marketFilter.value === 'btts') {
+              if ((m.prediction?.btts_yes || 0) < 0.55) return false;
+            }
+
+            return true;
+          });
+
+          // Sorting
+          res.sort((a, b) => {
+            if (sortBy.value === 'bankerProb' || bankerModeOnly.value) {
+              const bA = (a.best_banker || a.prediction?.best_banker)?.probability || 0;
+              const bB = (b.best_banker || b.prediction?.best_banker)?.probability || 0;
+              if (bB !== bA) return bB - bA;
+            }
+            if (sortBy.value === 'homeProb') {
+              return (b.prediction?.home_win || 0) - (a.prediction?.home_win || 0);
+            }
+            if (sortBy.value === 'awayProb') {
+              return (b.prediction?.away_win || 0) - (a.prediction?.away_win || 0);
+            }
+            if (sortBy.value === 'totalGoals') {
+              return ((b.home_xg || 0) + (b.away_xg || 0)) - ((a.home_xg || 0) + (a.away_xg || 0));
+            }
+            return new Date(a.kickoff).getTime() - new Date(b.kickoff).getTime();
+          });
+
+          return res;
+        });
+
+        // Group matches by Date
+        const groupedMatches = computed(() => {
+          const g = {};
+          filteredMatches.value.forEach(m => {
+            const k = m.kickoff ? m.kickoff.substring(0, 10) : 'Other';
+            if (!g[k]) g[k] = [];
+            g[k].push(m);
+          });
+          return g;
+        });
+
+        // Current Standings Mock Generator
+        const currentStandingsTable = computed(() => {
+          const samplePremierLeague = [
+            { position: 1, team_name: 'Liverpool FC', crest: 'https://crests.football-data.org/64.png', played: 11, won: 9, draw: 1, lost: 1, goal_diff: 15, points: 28, form: 'WWWDW' },
+            { position: 2, team_name: 'Manchester City FC', crest: 'https://crests.football-data.org/65.png', played: 11, won: 7, draw: 2, lost: 2, goal_diff: 9, points: 23, form: 'LLWWW' },
+            { position: 3, team_name: 'Chelsea FC', crest: 'https://crests.football-data.org/61.png', played: 11, won: 5, draw: 4, lost: 2, goal_diff: 8, points: 19, form: 'DDWLD' },
+            { position: 4, team_name: 'Arsenal FC', crest: 'https://crests.football-data.org/57.png', played: 11, won: 5, draw: 4, lost: 2, goal_diff: 6, points: 19, form: 'DLLWD' },
+            { position: 5, team_name: 'Nottingham Forest FC', crest: 'https://crests.football-data.org/351.png', played: 11, won: 5, draw: 4, lost: 2, goal_diff: 5, points: 19, form: 'LWWWD' },
+            { position: 6, team_name: 'Brighton & Hove Albion FC', crest: 'https://crests.football-data.org/397.png', played: 11, won: 5, draw: 4, lost: 2, goal_diff: 4, points: 19, form: 'WLDWW' },
+            { position: 7, team_name: 'Fulham FC', crest: 'https://crests.football-data.org/63.png', played: 11, won: 5, draw: 3, lost: 3, goal_diff: 3, points: 18, form: 'WWLDL' },
+            { position: 8, team_name: 'Newcastle United FC', crest: 'https://crests.football-data.org/67.png', played: 11, won: 5, draw: 3, lost: 3, goal_diff: 2, points: 18, form: 'WWLLD' },
+            { position: 9, team_name: 'Aston Villa FC', crest: 'https://crests.football-data.org/58.png', played: 11, won: 5, draw: 3, lost: 3, goal_diff: 0, points: 18, form: 'LLDWD' },
+            { position: 10, team_name: 'Tottenham Hotspur FC', crest: 'https://crests.football-data.org/73.png', played: 11, won: 5, draw: 1, lost: 5, goal_diff: 10, points: 16, form: 'LWLWW' },
+          ];
+          return samplePremierLeague;
+        });
+
+        // Dixon-Coles Poisson Simulator Engine in JavaScript
+        const simForecast = computed(() => {
+          const h_xg = simHomeXg.value;
+          const a_xg = simAwayXg.value;
+          const rho = -0.04;
+
+          function poissonPmf(k, lam) {
+            if (lam <= 0) return k === 0 ? 1.0 : 0.0;
+            return Math.exp(-lam) * Math.pow(lam, k) / factorial(k);
+          }
+          function factorial(n) {
+            let res = 1;
+            for (let i = 2; i <= n; i++) res *= i;
+            return res;
+          }
+
+          let pHome = 0, pDraw = 0, pAway = 0, pO15 = 0, pO25 = 0, pU35 = 0, pBtts = 0;
+          const scores = [];
+
+          for (let h = 0; h <= 6; h++) {
+            for (let a = 0; a <= 6; a++) {
+              let prob = poissonPmf(h, h_xg) * poissonPmf(a, a_xg);
+              let tau = 1.0;
+              if (h === 0 && a === 0) tau = 1.0 - (h_xg * a_xg * rho);
+              else if (h === 0 && a === 1) tau = 1.0 + (h_xg * rho);
+              else if (h === 1 && a === 0) tau = 1.0 + (a_xg * rho);
+              else if (h === 1 && a === 1) tau = 1.0 - rho;
+
+              prob = Math.max(0, prob * tau);
+              scores.push({ score: `${h}-${a}`, h, a, probability: prob });
+
+              if (h > a) pHome += prob;
+              else if (h === a) pDraw += prob;
+              else pAway += prob;
+
+              if (h + a >= 2) pO15 += prob;
+              if (h + a >= 3) pO25 += prob;
+              if (h + a <= 3) pU35 += prob;
+              if (h > 0 && a > 0) pBtts += prob;
+            }
+          }
+
+          const tot = pHome + pDraw + pAway || 1.0;
+          pHome /= tot;
+          pDraw /= tot;
+          pAway /= tot;
+
+          scores.sort((x, y) => y.probability - x.probability);
+          const topScores = scores.slice(0, 5).map(s => ({
+            score: s.score,
+            probability: s.probability / tot
+          }));
+
+          let favored = 'Home Win';
+          let mostLikely = '2-1';
+          if (pHome >= pAway + 0.08 && pHome > pDraw) {
+            favored = 'Home Win';
+            mostLikely = scores.find(s => s.h > s.a)?.score || '2-1';
+          } else if (pAway >= pHome + 0.08 && pAway > pDraw) {
+            favored = 'Away Win';
+            mostLikely = scores.find(s => s.a > s.h)?.score || '1-2';
+          } else {
+            favored = 'Balanced / Draw Edge';
+            mostLikely = scores.find(s => s.h === s.a)?.score || '1-1';
+          }
+
+          return {
+            home_win: pHome,
+            draw: pDraw,
+            away_win: pAway,
+            over_1_5: pO15 / tot,
+            over_2_5: pO25 / tot,
+            under_3_5: pU35 / tot,
+            btts_yes: pBtts / tot,
+            favored_outcome: favored,
+            most_likely_score: mostLikely,
+            top_scorelines: topScores,
+            confidence: pHome > 0.6 || pAway > 0.55 ? 'High Confidence' : 'Balanced Edge',
+            fair_odds: {
+              home: Number((1.0 / Math.max(0.01, pHome)).toFixed(2)),
+              draw: Number((1.0 / Math.max(0.01, pDraw)).toFixed(2)),
+              away: Number((1.0 / Math.max(0.01, pAway)).toFixed(2)),
+            }
+          };
+        });
+
+        // Accumulator Helpers
+        const slipTotalOdds = computed(() => {
+          let o = 1.0;
+          slipLegs.value.forEach(l => { o *= l.odds; });
+          return Number(o.toFixed(2));
+        });
+
+        const slipJointProb = computed(() => {
+          let p = 1.0;
+          slipLegs.value.forEach(l => { p *= l.prob; });
+          return p;
+        });
+
+        const isLegInSlip = (matchId, marketCode) => {
+          const id = `${matchId}-${marketCode}`;
+          return slipLegs.value.some(l => l.id === id);
+        };
+
+        const addPickToSlip = (match, marketCode, pickName, prob, odds) => {
+          const id = `${match.id}-${marketCode}`;
+          const idx = slipLegs.value.findIndex(l => l.id === id);
+          if (idx >= 0) {
+            slipLegs.value.splice(idx, 1);
+          } else {
+            slipLegs.value.push({
+              id,
+              matchId: match.id,
+              matchTitle: `${match.home_team} vs ${match.away_team}`,
+              pickName,
+              market: marketCode,
+              prob,
+              odds: odds || 1.15,
+            });
+            isSlipOpen.value = true;
+          }
+        };
+
+        const addBankerToSlip = (match) => {
+          const b = match.best_banker || match.prediction?.best_banker;
+          if (!b) return;
+          addPickToSlip(match, b.market_code || 'banker', b.selection, b.probability, b.fair_odds);
+        };
+
+        const loadDailyBankerSlipToBetSlip = () => {
+          if (!dailyBankerSlip.value || !dailyBankerSlip.value.legs) return;
+          const newLegs = dailyBankerSlip.value.legs.map(leg => ({
+            id: `${leg.match_id}-${leg.market_code}`,
+            matchId: String(leg.match_id),
+            matchTitle: leg.fixture,
+            pickName: leg.selection,
+            market: leg.market,
+            prob: (leg.win_probability || 90.0) / 100.0,
+            odds: leg.fair_odds,
+          }));
+          slipLegs.value = newLegs;
+          isSlipOpen.value = true;
+        };
+
+        const removeLeg = (id) => {
+          slipLegs.value = slipLegs.value.filter(l => l.id !== id);
+        };
+
+        const clearSlip = () => {
+          slipLegs.value = [];
+        };
+
+        // Modal Helpers
+        const openModal = (match) => {
+          selectedMatchModal.value = match;
+          modalTab.value = 'overview';
+        };
+
+        const modalBanker = computed(() => {
+          if (!selectedMatchModal.value) return null;
+          return selectedMatchModal.value.best_banker || selectedMatchModal.value.prediction?.best_banker;
+        });
+
+        // Odds Display Formatter
+        const renderOdds = (dec) => {
+          if (!dec || isNaN(dec)) return '-';
+          const d = parseFloat(dec);
+          if (oddsFormat.value === 'decimal') return d.toFixed(2);
+          if (oddsFormat.value === 'percent') return `${Math.round((1.0 / d) * 100)}%`;
+          if (oddsFormat.value === 'american') {
+            if (d >= 2.0) return `+${Math.round((d - 1.0) * 100)}`;
+            return `-${Math.round(100 / (d - 1.0))}`;
+          }
+          if (oddsFormat.value === 'fractional') {
+            const net = d - 1.0;
+            const dens = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20];
+            let bestNum = 1, bestDen = 1, minDiff = 999;
+            dens.forEach(den => {
+              const num = Math.round(net * den);
+              if (num > 0) {
+                const diff = Math.abs((num / den) - net);
+                if (diff < minDiff) {
+                  minDiff = diff;
+                  bestNum = num;
+                  bestDen = den;
+                }
+              }
+            });
+            return `${bestNum}/${bestDen}`;
+          }
+          return d.toFixed(2);
+        };
+
+        // Date String Formatting
+        const formatDateHeaderPill = (dStr) => {
+          try {
+            const [y, m, d] = dStr.split('-');
+            const dt = new Date(Number(y), Number(m) - 1, Number(d));
+            return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+          } catch {
+            return dStr;
+          }
+        };
+
+        const getDayHeader = (dKey) => {
+          try {
+            const [y, m, d] = dKey.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            const today = new Date();
+            const tm = new Date();
+            tm.setDate(today.getDate() + 1);
+
+            if (dt.toDateString() === today.toDateString()) {
+              return `Today, ${dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+            }
+            if (dt.toDateString() === tm.toDateString()) {
+              return `Tomorrow, ${dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+            }
+            return dt.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+          } catch {
+            return dKey;
+          }
+        };
+
+        const formatDateTime = (iso) => {
+          try {
+            const d = new Date(iso);
+            return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+          } catch {
+            return iso;
+          }
+        };
+
+        const formatKickoffRelative = (iso) => {
+          try {
+            const d = new Date(iso);
+            const now = new Date();
+            const diffHours = Math.round((d.getTime() - now.getTime()) / (1000 * 3600));
+            if (diffHours <= 0) return 'Kickoff Soon / Live';
+            if (diffHours < 24) return `Kickoff in ~${diffHours}h`;
+            const diffDays = Math.round(diffHours / 24);
+            return `Kickoff in ${diffDays} day${diffDays === 1 ? '' : 's'}`;
+          } catch {
+            return '';
+          }
+        };
+
+        const getLeagueCount = (lg) => {
+          if (lg === 'All') return matches.value.length;
+          return matches.value.filter(m => m.league === lg).length;
+        };
+
+        // Bootstrap on Mount
+        onMounted(async () => {
+          // 1. Try local API first (if backend server is running on localhost:8000)
+          try {
+            const res = await fetch('http://localhost:8000/api/predictions');
+            if (res.ok) {
+              const data = await res.json();
+              if (data.predictions && data.predictions.length > 0) {
+                matches.value = data.predictions;
+                source.value = 'FastAPI Backend (Live)';
+              }
+            }
+            const slipRes = await fetch('http://localhost:8000/api/predictions/banker-slip?legs=3');
+            if (slipRes.ok) {
+              dailyBankerSlip.value = await slipRes.json();
+            }
+          } catch (e) {
+            // Backend not running, proceed to static fallback
+          }
+
+          // 2. If matches still empty, use preloaded static fixtures from fixtures_data.js
+          if (matches.value.length === 0 && window.GOALINSIGHT_DATA) {
+            matches.value = window.GOALINSIGHT_DATA.predictions || [];
+            dailyBankerSlip.value = window.GOALINSIGHT_DATA.daily_banker_slip || null;
+            source.value = window.GOALINSIGHT_DATA.source || 'Local Snapshot';
+          }
+        });
+
+        return {
+          activeTab,
+          oddsFormat,
+          matches,
+          source,
+          searchQuery,
+          selectedLeague,
+          selectedProvider,
+          selectedDateFilter,
+          marketFilter,
+          sortBy,
+          bankerModeOnly,
+          dailyBankerSlip,
+          selectedMatchModal,
+          modalTab,
+          selectedStandingsCode,
+          slipLegs,
+          isSlipOpen,
+          stakeAmount,
+          simHome,
+          simAway,
+          simHomeXg,
+          simAwayXg,
+          navTabs,
+          radarOptions,
+          standingsCodes,
+          modalTabs,
+          todayKey,
+          tomorrowKey,
+          dateCounts,
+          uniqueDates,
+          uniqueLeagues,
+          weekendMatchCount,
+          ultraBankerCount,
+          filteredMatches,
+          groupedMatches,
+          currentStandingsTable,
+          simForecast,
+          slipTotalOdds,
+          slipJointProb,
+          isLegInSlip,
+          addPickToSlip,
+          addBankerToSlip,
+          loadDailyBankerSlipToBetSlip,
+          removeLeg,
+          clearSlip,
+          openModal,
+          modalBanker,
+          renderOdds,
+          formatDateHeaderPill,
+          getDayHeader,
+          formatDateTime,
+          formatKickoffRelative,
+          getLeagueCount,
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

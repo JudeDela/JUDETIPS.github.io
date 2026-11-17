@@ -1,0 +1,80 @@
+name: Deploy GoalInsight to GitHub Pages
+
+on:
+  push:
+    branches: ["main", "master"]
+  schedule:
+    # Automatically refresh fixtures every morning at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install httpx pydantic-settings sqlalchemy fastapi uvicorn python-dotenv
+
+      - name: Refresh Live Fixtures & Recalculate 90%+ Bankers
+        env:
+          FOOTBALL_DATA_TOKEN: ${{ secrets.FOOTBALL_DATA_TOKEN || 'b7e6bea2bbea49b59808336137209ef8' }}
+          SPORTMONKS_API_TOKEN: ${{ secrets.SPORTMONKS_API_TOKEN || 'ahErAJVsYUkqeKctYZfTBYr6jW5L8eNSn2zUyEr9wOfpdywIk9KBunCPLyLY' }}
+        run: |
+          python -c "
+          import sys, asyncio, json
+          sys.path.append('backend')
+          from app.main import get_predictions, get_daily_banker_slip
+
+          async def update():
+              try:
+                  preds = await get_predictions()
+                  slip = await get_daily_banker_slip(legs=3)
+                  data = {
+                      'predictions': preds.get('predictions', []),
+                      'daily_banker_slip': slip,
+                      'source': preds.get('source', '')
+                  }
+                  js_str = 'window.GOALINSIGHT_DATA = ' + json.dumps(data, ensure_ascii=False) + ';'
+                  with open('fixtures_data.js', 'w', encoding='utf-8') as f:
+                      f.write(js_str)
+                  with open('docs/fixtures_data.js', 'w', encoding='utf-8') as f:
+                      f.write(js_str)
+                  print(f'Successfully updated {len(preds.get(\"predictions\", []))} fixtures with 90%+ bankers!')
+              except Exception as e:
+                  print(f'Warning during live fetch, falling back to existing data: {e}')
+
+          asyncio.run(update())
+          "
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Static Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
