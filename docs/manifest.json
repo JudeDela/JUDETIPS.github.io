@@ -1,0 +1,25 @@
+{
+  "name": "JUDETIPS — Football Intelligence & Quantitative Match Forecasts",
+  "short_name": "JUDETIPS",
+  "description": "Institutional-grade football match forecasting platform powered by Dixon-Coles Poisson modeling, 20-site prediction consensus engine, corner & card markets, and 90%+ ultra-safe banker scanner.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#070b12",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://img.icons8.com/color/192/football2--v1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/football2--v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

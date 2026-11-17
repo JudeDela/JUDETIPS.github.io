@@ -7,7 +7,10 @@ import math
 from typing import Dict, Any, List, Tuple
 from .consensus_engine import (
     calculate_20_site_consensus,
-    compute_expanded_markets
+    compute_expanded_markets,
+    determine_tactical_archetypes,
+    generate_algorithmic_thesis,
+    evaluate_regression_and_value
 )
 from .ensemble import (
     calculate_elo_probabilities,
@@ -290,6 +293,39 @@ def forecast(
         monte_carlo=mc_data
     )
 
+    tactical_data = determine_tactical_archetypes(
+        home_team=home_team,
+        away_team=away_team,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        corner_exp=expanded_markets["corners"]["expected_total_corners"]
+    )
+
+    thesis_data = generate_algorithmic_thesis(
+        home_team=home_team,
+        away_team=away_team,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        p_home=p_home,
+        p_draw=p_draw,
+        p_away=p_away,
+        favored=favored,
+        most_likely_score=most_likely_score,
+        consensus_data=consensus_data,
+        corners_data=expanded_markets["corners"]
+    )
+
+    value_data = evaluate_regression_and_value(
+        home_team=home_team,
+        away_team=away_team,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        p_home=p_home,
+        p_draw=p_draw,
+        p_away=p_away,
+        favored=favored
+    )
+
     return {
         "home_win": round(p_home, 4),
         "draw": round(p_draw, 4),
@@ -365,6 +401,9 @@ def forecast(
         "best_banker": banker_data["best_banker"],
         "consensus_20_sites": consensus_data,
         "expanded_markets": expanded_markets,
+        "tactical_archetypes": tactical_data,
+        "algorithmic_thesis": thesis_data,
+        "value_metrics": value_data,
         "monte_carlo": mc_data,
         "kelly_criterion": banker_data["best_banker"]["kelly_staking"],
         "method": "4-Model Multi-Algorithmic Ensemble (Dixon-Coles + Dynamic Elo + Form EMA + 5,000-Match Monte Carlo)"
