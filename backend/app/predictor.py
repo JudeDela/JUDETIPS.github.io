@@ -5,6 +5,10 @@ and comprehensive betting market derivations.
 """
 import math
 from typing import Dict, Any, List, Tuple
+from .consensus_engine import (
+    calculate_20_site_consensus,
+    compute_expanded_markets
+)
 from .ensemble import (
     calculate_elo_probabilities,
     calculate_form_momentum,
@@ -188,24 +192,60 @@ def forecast(
     best_draw_score = draw_scores[0]["score"] if draw_scores else "1-1"
     best_away_score = away_win_scores[0]["score"] if away_win_scores else "0-1"
 
+    # 20-Site Global Prediction Consensus & Multi-Market Modeling
+    consensus_data = calculate_20_site_consensus(
+        home_team=home_team,
+        away_team=away_team,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        p_home_poisson=p_home,
+        p_draw_poisson=p_draw,
+        p_away_poisson=p_away
+    )
+    expanded_markets = compute_expanded_markets(
+        home_team=home_team,
+        away_team=away_team,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        p_home=p_home,
+        p_draw=p_draw,
+        p_away=p_away
+    )
+
+    # Informed Meta-Decision (Dixon-Coles + 20-Site Consensus)
+    c_home_pct = consensus_data["vote_percentages"]["home"] / 100.0
+    c_draw_pct = consensus_data["vote_percentages"]["draw"] / 100.0
+    c_away_pct = consensus_data["vote_percentages"]["away"] / 100.0
+
+    meta_home = (p_home * 0.50) + (c_home_pct * 0.50)
+    meta_draw = (p_draw * 0.50) + (c_draw_pct * 0.50)
+    meta_away = (p_away * 0.50) + (c_away_pct * 0.50)
+
     # Determine Favored Outcome with unbiased thresholding
-    # Home Win vs Away Win vs Draw
-    if p_home >= p_away + 0.08 and p_home > p_draw:
+    if meta_home > meta_away and meta_home > meta_draw and (meta_home >= 0.44 or meta_home >= meta_away + 0.05):
         favored = "Home Win"
-        most_likely_score = best_home_score
-        confidence = "High Confidence" if p_home >= 0.58 else "Moderate Edge"
-    elif p_away >= p_home + 0.08 and p_away > p_draw:
+        top_c_score = consensus_data["consensus_top_score"]
+        if "-" in top_c_score:
+            parts = top_c_score.split("-")
+            most_likely_score = top_c_score if int(parts[0]) > int(parts[1]) else best_home_score
+        else:
+            most_likely_score = best_home_score
+        confidence = "High Confidence" if meta_home >= 0.60 else "Moderate Edge"
+
+    elif meta_away > meta_home and meta_away > meta_draw and (meta_away >= 0.42 or meta_away >= meta_home + 0.05):
         favored = "Away Win"
-        most_likely_score = best_away_score
-        confidence = "High Confidence" if p_away >= 0.52 else "Moderate Edge"
-    elif p_draw >= 0.32 or abs(p_home - p_away) < 0.08:
-        favored = "Balanced / Draw Edge"
-        most_likely_score = best_draw_score
-        confidence = "Balanced Contest"
+        top_c_score = consensus_data["consensus_top_score"]
+        if "-" in top_c_score:
+            parts = top_c_score.split("-")
+            most_likely_score = top_c_score if int(parts[1]) > int(parts[0]) else best_away_score
+        else:
+            most_likely_score = best_away_score
+        confidence = "High Confidence" if meta_away >= 0.54 else "Moderate Edge"
+
     else:
-        favored = "Home Win" if p_home >= p_away else "Away Win"
-        most_likely_score = best_home_score if p_home >= p_away else best_away_score
-        confidence = "Moderate Edge"
+        favored = "Balanced / Draw Edge"
+        most_likely_score = "0-0" if (home_xg + away_xg) < 1.6 else ("2-2" if (home_xg + away_xg) > 3.2 else "1-1")
+        confidence = "Balanced Contest"
 
     # Generate 5x5 score heatmap matrix (0-0 to 4-4)
     matrix_5x5 = []
@@ -323,6 +363,8 @@ def forecast(
         },
         "banker_analysis": banker_data,
         "best_banker": banker_data["best_banker"],
+        "consensus_20_sites": consensus_data,
+        "expanded_markets": expanded_markets,
         "monte_carlo": mc_data,
         "kelly_criterion": banker_data["best_banker"]["kelly_staking"],
         "method": "4-Model Multi-Algorithmic Ensemble (Dixon-Coles + Dynamic Elo + Form EMA + 5,000-Match Monte Carlo)"

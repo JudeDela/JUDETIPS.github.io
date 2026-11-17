@@ -177,40 +177,15 @@ def set_cached(key: str, data: Any, ttl_seconds: int = 600) -> None:
         logger.warning(f"DB cache write error: {e}")
 
 
+from .consensus_engine import compute_accurate_match_xg
+
 def estimate_expected_goals(home_team: str, away_team: str) -> Tuple[float, float]:
     """
-    Computes balanced expected goals (xG) using club offensive and defensive ratings.
-    Eliminates artificial home bias: superior away teams (e.g. Palmeiras, Real Madrid, Celtic, Bayern)
-    will correctly receive higher xG and are predicted to win.
+    Computes accurate, un-biased expected goals (xG) using global team ratings
+    and dynamic heuristic tiers, eliminating 1-1 draw convergence across unrated teams.
     """
-    # Lookup ratings (default to 1.30 attack, 1.25 defense for balanced unrated clubs)
-    h_att, h_def = CLUB_RATINGS.get(home_team, (1.30, 1.25))
-    a_att, a_def = CLUB_RATINGS.get(away_team, (1.30, 1.25))
-
-    # Try fuzzy matching if full name didn't match (e.g. "Arsenal" in "Arsenal FC")
-    if home_team not in CLUB_RATINGS:
-        for k, v in CLUB_RATINGS.items():
-            if k.lower() in home_team.lower() or home_team.lower() in k.lower():
-                h_att, h_def = v
-                break
-    if away_team not in CLUB_RATINGS:
-        for k, v in CLUB_RATINGS.items():
-            if k.lower() in away_team.lower() or away_team.lower() in k.lower():
-                a_att, a_def = v
-                break
-
-    # Realistic empirical home advantage (+0.08 goals home boost, -0.05 away)
-    HOME_BOOST = 0.08
-    AWAY_PENALTY = 0.05
-
-    # Interaction model: Expected Goals = Attack Strength * Opponent Defensive Vulnerability
-    base_home_xg = (h_att * (a_def / 1.15)) + HOME_BOOST
-    base_away_xg = (a_att * (h_def / 1.15)) - AWAY_PENALTY
-
-    home_xg = max(0.40, min(round(base_home_xg, 2), 4.50))
-    away_xg = max(0.40, min(round(base_away_xg, 2), 4.50))
-
-    return home_xg, away_xg
+    h_xg, a_xg, _, _ = compute_accurate_match_xg(home_team, away_team)
+    return h_xg, a_xg
 
 
 async def fetch_football_data_fixtures(horizon_days: int = 7) -> List[Dict[str, Any]]:

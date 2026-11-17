@@ -140,7 +140,9 @@ async def get_predictions(
                 "prediction": prediction,
                 "banker_analysis": prediction.get("banker_analysis"),
                 "best_banker": prediction.get("best_banker"),
-                "ensemble_consensus": prediction.get("ensemble_consensus")
+                "ensemble_consensus": prediction.get("ensemble_consensus"),
+                "consensus_20_sites": prediction.get("consensus_20_sites"),
+                "expanded_markets": prediction.get("expanded_markets")
             })
 
         return {
